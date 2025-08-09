@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>درخواست چت - CarLink</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1>شروع چت</h1>
+        <form method="post" action="{% url 'chat_request' %}">
+            {% csrf_token %}
+            <input type="hidden" name="receiver_id" value="{{ request.GET.receiver_id }}">
+            <input type="hidden" name="shop_id" value="{{ request.GET.shop_id|default:0 }}">
+            <div class="mb-3">
+                <label for="message" class="form-label">پیام:</label>
+                <textarea name="message" class="form-control" id="message" required>{{ request.GET.message }}</textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">ارسال درخواست</button>
+        </form>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

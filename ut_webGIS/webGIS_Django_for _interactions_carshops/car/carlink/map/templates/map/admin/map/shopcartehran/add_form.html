@@ -1,0 +1,133 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+{% block content %}
+    <h1>Add/Edit Shop Car Tehran</h1>
+    <div>
+        <h3>Select Location on Map</h3>
+        <link rel="stylesheet" href="{% static 'leaflet/leaflet.css' %}"/>
+        <script src="{% static 'leaflet/leaflet.js' %}"></script>
+        <div id="gis" style="width: 80%; height: 700px; position: relative;"></div>
+        <div id="formPopup" style="display:none; position:absolute; background:white; padding:10px; border:1px solid #ccc; z-index:1000; max-width:300px;">
+            <h4>جزئیات نمایشگاه</h4>
+            <input type="hidden" id="popupId">
+            <input type="text" id="popupName" placeholder="نام نمایشگاه"><br>
+            <input type="text" id="popupAddress" placeholder="آدرس"><br>
+            <input type="text" id="popupPhone" placeholder="تلفن"><br>
+            <button onclick="saveOrUpdateLocation()">ذخیره</button>
+            <button onclick="closePopup()">لغو</button>
+        </div>
+        <script>
+            var map = L.map('gis').setView([35.7, 51.4], 10);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 19}).addTo(map);
+
+            // گرفتن داده‌ها با AJAX
+            fetch('/get-shop-data/')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.shops && data.shops.length > 0) {
+                        data.shops.forEach(shop => {
+                            console.log('Adding marker:', shop.latitude, shop.longitude);
+                            var marker = L.marker([shop.latitude, shop.longitude]).addTo(map);
+                            marker.bindPopup(`
+                                <b>${shop.name || 'ناشناخته'}</b><br>
+                                ${shop.address || 'آدرس موجود نیست'}<br>
+                                تلفن: ${shop.phone || 'شماره موجود نیست'}<br>
+                                <button onclick="editMarker(${shop.id}, ${shop.latitude}, ${shop.longitude}, '${shop.name || ''}', '${shop.address || ''}', '${shop.phone || ''}')">ویرایش</button>
+                                <button onclick="deleteMarker(${shop.id})">حذف</button>
+                            `);
+                        });
+                    } else {
+                        console.log('No shops data available');
+                    }
+                })
+                .catch(error => console.error('Error fetching data:', error));
+
+            // انتخاب مختصات و باز کردن فرم
+            var geomInput = { value: '' }; // جايگزين input مخفی
+            var formPopup = document.getElementById('formPopup');
+            map.on('click', function(e) {
+                var latlng = e.latlng;
+                geomInput.value = `POINT(${latlng.lng} ${latlng.lat})`;
+                L.marker([latlng.lat, latlng.lng]).addTo(map).bindPopup('Selected Location').openPopup();
+                formPopup.style.display = 'block';
+                document.getElementById('popupId').value = '';
+                document.getElementById('popupName').value = '';
+                document.getElementById('popupAddress').value = '';
+                document.getElementById('popupPhone').value = '';
+                formPopup.style.left = (e.originalEvent.x + 10) + 'px';
+                formPopup.style.top = (e.originalEvent.y - formPopup.offsetHeight - 10) + 'px';
+                if (formPopup.style.top < 0) formPopup.style.top = '10px';
+            });
+
+            // ویرایش مارکر
+            function editMarker(id, lat, lng, name, address, phone) {
+                geomInput.value = `POINT(${lng} ${lat})`;
+                formPopup.style.display = 'block';
+                document.getElementById('popupId').value = id;
+                document.getElementById('popupName').value = name;
+                document.getElementById('popupAddress').value = address;
+                document.getElementById('popupPhone').value = phone;
+                formPopup.style.left = '50%';
+                formPopup.style.top = '50%';
+                formPopup.style.transform = 'translate(-50%, -50%)';
+            }
+
+            // ذخیره یا به‌روزرسانی
+            function saveOrUpdateLocation() {
+                var id = document.getElementById('popupId').value;
+                var geom = geomInput.value;
+                var name = document.getElementById('popupName').value;
+                var address = document.getElementById('popupAddress').value;
+                var phone = document.getElementById('popupPhone').value;
+                var url = id ? '/update-location/' : '/save-location/';
+                fetch(url, {
+                    method: 'POST',
+                    body: new URLSearchParams({
+                        'id': id || '',
+                        'geom': geom,
+                        'name': name,
+                        'address': address,
+                        'phone': phone
+                    }),
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data.message);
+                    if (data.status === 'success') {
+                        location.reload();
+                    }
+                })
+                .catch(error => console.error('Error saving/updating data:', error));
+                closePopup();
+            }
+
+            // حذف مارکر
+            function deleteMarker(id) {
+                if (confirm('آیا مطمئن هستید که می‌خواهید این نقطه را حذف کنید؟')) {
+                    fetch('/delete-location/', {
+                        method: 'POST',
+                        body: new URLSearchParams({ 'id': id }),
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log(data.message);
+                        if (data.status === 'success') {
+                            location.reload();
+                        }
+                    })
+                    .catch(error => console.error('Error deleting data:', error));
+                }
+            }
+
+            function closePopup() {
+                formPopup.style.display = 'none';
+                document.getElementById('popupId').value = '';
+                document.getElementById('popupName').value = '';
+                document.getElementById('popupAddress').value = '';
+                document.getElementById('popupPhone').value = '';
+            }
+        </script>
+    </div>
+{% endblock %}

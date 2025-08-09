@@ -1,0 +1,13 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+    <div class="container mt-4">
+        <h1 class="text-center mb-4">تماس ویدئویی (شبیه‌سازی)</h1>
+        <p>تماس با {{ chat_request.sender.username }} برای {{ chat_request.shop.name|default:'بدون نمایندگی' }}</p>
+        <p>موقعیت: {{ chat_request.shop.geom|default:'تأیید نشده' }}</p>
+        <div id="video-container">
+            <p>این یک شبیه‌سازی است. تماس در حال انجام است...</p>
+            <!-- دیباگ برای چک کردن رندر -->
+            <p style="color: red;">دیباگ: صفحه با درخواست ID {{ chat_request.id }} و is_video_call={{ chat_request.is_video_call }} رندر شد.</p>
+        </div>
+    </div>
+{% endblock %}

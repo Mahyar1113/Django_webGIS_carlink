@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>نقشه با Leaflet و GeoServer</title>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+  <style>
+    #map { width: 100%; height: 400px; }
+    #toc { 
+      position: absolute; 
+      top: 10px; 
+      right: 10px; 
+      background: white; 
+      padding: 10px; 
+      z-index: 1000; 
+      border: 1px solid #ccc; 
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    #infoPanel {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      background: #f9f9f9;
+      padding: 15px;
+      z-index: 1000;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      font-family: 'Arial', sans-serif;
+      font-size: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    #infoPanel div {
+      color: #333;
+    }
+    #saveButton {
+      padding: 5px 10px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-family: 'Arial', sans-serif;
+      font-size: 14px;
+      transition: background-color 0.3s;
+    }
+    #saveButton:hover {
+      background-color: #45a049;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div id="toc">
+    <label><input type="checkbox" id="layerOSM" checked> لایه OSM</label><br>
+    <label><input type="checkbox" id="layer1" checked> لایه نقطه‌ای</label><br>
+    <label><input type="checkbox" id="layer2" checked> لایه جاده‌ها</label><br>
+  </div>
+  <div id="infoPanel">
+    <div id="coords">مختصات: -</div>
+    <div id="distance">فاصله: -</div>
+    <div id="area">مساحت: -</div>
+    <button id="saveButton">ذخیره تصویر</button>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+  <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
+  <script>
+    // ایجاد نقشه پایه
+    var map = L.map('map').setView([44.39, -103.5795], 10);
+    var osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(map);
+
+    // لایه‌های GeoServer (WMS برای نمایش)
+    var wmsLayer = L.tileLayer.wms('http://localhost:8080/geoserver/wms', {
+      layers: 'sf:bugsites',
+      format: 'image/png',
+      transparent: true,
+      attribution: 'GeoServer'
+    }).addTo(map);
+
+    var roadsLayer = L.tileLayer.wms('http://localhost:8080/geoserver/wms', {
+      layers: 'sf:roads',
+      format: 'image/png',
+      transparent: true,
+      attribution: 'GeoServer'
+    }).addTo(map);
+
+    // لایه وکتوری برای ویرایش
+    var drawnItems = new L.FeatureGroup();
+    map.addLayer(drawnItems);
+
+    // ابزار ویرایش با Leaflet.Draw
+    var drawControl = new L.Control.Draw({
+      edit: {
+        featureGroup: drawnItems
+      },
+      draw: {
+        polygon: true, // فعال کردن رسم چندضلعی
+        polyline: false,
+        rectangle: false,
+        circle: false,
+        circlemarker: false,
+        marker: true
+      }
+    });
+    map.addControl(drawControl);
+
+    // آرایه برای ذخیره دو نقطه آخر و خط چین
+    var lastTwoPoints = [];
+    var dashedLine = null;
+
+    // رویداد اضافه کردن نقطه یا چندضلعی
+    map.on('draw:created', function(e) {
+      var layer = e.layer;
+      var name = prompt('نام نقطه یا چندضلعی را وارد کنید:');
+      if (name) {
+        layer.bindPopup(name).openPopup();
+        drawnItems.addLayer(layer);
+
+        // برای نقاط: محاسبه فاصله
+        if (e.layerType === 'marker') {
+          var coords = layer.getLatLng();
+          lastTwoPoints.push([coords.lng, coords.lat]);
+
+          // فقط دو نقطه آخر را نگه می‌داریم
+          if (lastTwoPoints.length > 2) {
+            lastTwoPoints.shift();
+          }
+
+          // محاسبه فاصله و رسم خط چین
+          if (lastTwoPoints.length === 2) {
+            var point1 = turf.point(lastTwoPoints[0]);
+            var point2 = turf.point(lastTwoPoints[1]);
+            var distance = turf.distance(point1, point2, { units: 'kilometers' });
+            document.getElementById('distance').innerHTML = `فاصله: ${distance.toFixed(2)} کیلومتر`;
+
+            // حذف خط قبلی اگر وجود داشته باشد
+            if (dashedLine) {
+              map.removeLayer(dashedLine);
+            }
+
+            // رسم خط چین
+            dashedLine = L.polyline([
+              [lastTwoPoints[0][1], lastTwoPoints[0][0]],
+              [lastTwoPoints[1][1], lastTwoPoints[1][0]]
+            ], {
+              color: 'blue',
+              dashArray: '10, 10',
+              weight: 2
+            }).addTo(map);
+          } else {
+            document.getElementById('distance').innerHTML = `فاصله: لطفاً دو نقطه اضافه کنید`;
+          }
+        }
+
+        // برای چندضلعی: محاسبه مساحت
+        if (e.layerType === 'polygon') {
+          var geojson = layer.toGeoJSON();
+          var area = turf.area(geojson);
+          document.getElementById('area').innerHTML = `مساحت: ${area.toFixed(2)} متر مربع`;
+        }
+      }
+    });
+
+    // رویداد ویرایش نقاط یا چندضلعی
+    map.on('draw:edited', function(e) {
+      e.layers.eachLayer(function(layer) {
+        var name = prompt('نام جدید نقطه یا چندضلعی را وارد کنید:', layer.getPopup().getContent());
+        if (name) {
+          layer.setPopupContent(name);
+        }
+
+        // به‌روزرسانی فاصله و خط چین پس از ویرایش نقاط
+        if (layer instanceof L.Marker) {
+          var coords = layer.getLatLng();
+          lastTwoPoints = [];
+          drawnItems.eachLayer(function(l) {
+            if (l instanceof L.Marker) {
+              lastTwoPoints.push([l.getLatLng().lng, l.getLatLng().lat]);
+              if (lastTwoPoints.length > 2) {
+                lastTwoPoints.shift();
+              }
+            }
+          });
+
+          if (lastTwoPoints.length === 2) {
+            var point1 = turf.point(lastTwoPoints[0]);
+            var point2 = turf.point(lastTwoPoints[1]);
+            var distance = turf.distance(point1, point2, { units: 'kilometers' });
+            document.getElementById('distance').innerHTML = `فاصله: ${distance.toFixed(2)} کیلومتر`;
+
+            if (dashedLine) {
+              map.removeLayer(dashedLine);
+            }
+            dashedLine = L.polyline([
+              [lastTwoPoints[0][1], lastTwoPoints[0][0]],
+              [lastTwoPoints[1][1], lastTwoPoints[1][0]]
+            ], {
+              color: 'blue',
+              dashArray: '10, 10',
+              weight: 2
+            }).addTo(map);
+          } else {
+            document.getElementById('distance').innerHTML = `فاصله: لطفاً دو نقطه اضافه کنید`;
+          }
+        }
+
+        // به‌روزرسانی مساحت پس از ویرایش چندضلعی
+        if (layer instanceof L.Polygon) {
+          var geojson = layer.toGeoJSON();
+          var area = turf.area(geojson);
+          document.getElementById('area').innerHTML = `مساحت: ${area.toFixed(2)} متر مربع`;
+        }
+      });
+    });
+
+    // نمایش مختصات ماوس
+    var coordsDiv = document.getElementById('coords');
+    map.on('mousemove', function(e) {
+      var lat = e.latlng.lat.toFixed(6);
+      var lng = e.latlng.lng.toFixed(6);
+      coordsDiv.innerHTML = `مختصات: Lat: ${lat}, Lon: ${lng}`;
+    });
+
+    // کنترل لایه‌ها با TOC
+    document.getElementById('layerOSM').addEventListener('change', function() {
+      osmLayer.setOpacity(this.checked ? 1 : 0);
+    });
+
+    document.getElementById('layer1').addEventListener('change', function() {
+      wmsLayer.setOpacity(this.checked ? 1 : 0);
+    });
+
+    document.getElementById('layer2').addEventListener('change', function() {
+      roadsLayer.setOpacity(this.checked ? 1 : 0);
+    });
+
+    // تابع ذخیره تصویر با استفاده از WMS
+    document.getElementById('saveButton').addEventListener('click', function() {
+      var size = map.getSize();
+      var bounds = map.getBounds();
+      var layersToExport = [];
+      if (wmsLayer.options.opacity > 0) layersToExport.push('sf:bugsites');
+      if (roadsLayer.options.opacity > 0) layersToExport.push('sf:roads');
+
+      var wmsUrl = 'http://localhost:8080/geoserver/wms?' +
+        'SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&' +
+        'FORMAT=image/png&' +
+        'TRANSPARENT=true&' +
+        'WIDTH=' + size.x + '&' +
+        'HEIGHT=' + size.y + '&' +
+        'LAYERS=' + layersToExport.join(',') + '&' +
+        'SRS=EPSG:4326&' +
+        'BBOX=' + bounds.getWest() + ',' + bounds.getSouth() + ',' + bounds.getEast() + ',' + bounds.getNorth();
+
+      var link = document.createElement('a');
+      link.href = wmsUrl;
+      link.download = 'map.png';
+      link.click();
+    });
+  </script>
+</body>
+</html>

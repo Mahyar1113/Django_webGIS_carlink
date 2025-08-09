@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>نتایج جستجو - CarLink</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center mb-4">نتایج جستجو برای: {{ query }}</h1>
+        {% if results.ads or results.shops %}
+            {% if results.ads %}
+                <h2 class="mt-4">آگهی‌ها</h2>
+                <ul class="list-group">
+                    {% for ad in results.ads %}
+                        <li class="list-group-item">
+                            <strong>{{ ad.title }}</strong><br>
+                            توضیحات: {{ ad.description|truncatechars:50 }}<br>
+                            قیمت: {{ ad.price }} تومان<br>
+                            <a href="{% url 'map_view' %}?lat={{ ad.latitude }}&lng={{ ad.longitude }}" class="btn btn-info btn-sm">نمایش روی نقشه</a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+            {% if results.shops %}
+                <h2 class="mt-4">نمایشگاه‌ها</h2>
+                <ul class="list-group">
+                    {% for shop in results.shops %}
+                        <li class="list-group-item">
+                            <strong>{{ shop.name }}</strong><br>
+                            آدرس: {{ shop.address|truncatechars:50 }}<br>
+                            تلفن: {{ shop.phone }}<br>
+                            <a href="{% url 'map_view' %}?lat={{ shop.geom.y }}&lng={{ shop.geom.x }}" class="btn btn-info btn-sm">نمایش روی نقشه</a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% else %}
+            <p>هیچ نتیجه‌ای برای "{{ query }}" یافت نشد.</p>
+        {% endif %}
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

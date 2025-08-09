@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>تحلیل قیمتی - CarLink</title>
+    {% load static %}
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+    <style>
+        .chart-container {
+            padding: 20px;
+            max-width: 600px;
+            margin: auto;
+            margin-top: 20px;
+        }
+        canvas {
+            max-width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="chart-container">
+        <h2>نمودار تعداد خودروها بر اساس نمایشگاه</h2>
+        <canvas id="vehicleCountChart"></canvas>
+    </div>
+    <div class="chart-container">
+        <h2>نمودار میانگین قیمت بر اساس نوع سوخت</h2>
+        <canvas id="fuelTypeChart"></canvas>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <script>
+        // گرفتن داده‌ها از endpoint
+        function fetchChartData() {
+            fetch('/chart-data/')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('خطا در دریافت داده‌ها: ' + response.status);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('داده‌های دریافت‌شده:', data);
+
+                    // چک ساختار داده‌ها
+                    if (!data.vehicle_count_data || !Array.isArray(data.vehicle_count_data)) {
+                        console.error('داده‌های vehicle_count_data مشکل داره:', data.vehicle_count_data);
+                        return;
+                    }
+                    if (!data.fuel_type_data || !Array.isArray(data.fuel_type_data)) {
+                        console.error('داده‌های fuel_type_data مشکل داره:', data.fuel_type_data);
+                        return;
+                    }
+
+                    // نمودار تعداد خودروها
+                    const ctx1 = document.getElementById('vehicleCountChart').getContext('2d');
+                    if (ctx1) {
+                        new Chart(ctx1, {
+                            type: 'bar',
+                            data: {
+                                labels: data.vehicle_count_data.map(item => item.name || 'بدون نام'),
+                                datasets: [{
+                                    label: 'تعداد خودروها',
+                                    data: data.vehicle_count_data.map(item => Number(item.vehicle_count) || 0),
+                                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                                    borderColor: 'rgba(54, 162, 235, 1)',
+                                    borderWidth: 1
+                                }]
+                            },
+                            options: {
+                                scales: {
+                                    y: { beginAtZero: true, title: { display: true, text: 'تعداد' } },
+                                    x: { title: { display: true, text: 'نمایشگاه‌ها' } }
+                                },
+                                plugins: { legend: { display: true } }
+                            }
+                        });
+                        console.log('نمودار vehicleCount رسم شد.');
+                    } else {
+                        console.error('عنصر vehicleCountChart پیدا نشد!');
+                    }
+
+                    // نمودار میانگین قیمت بر اساس نوع سوخت
+                    const ctx2 = document.getElementById('fuelTypeChart').getContext('2d');
+                    if (ctx2) {
+                        new Chart(ctx2, {
+                            type: 'pie',
+                            data: {
+                                labels: data.fuel_type_data.map(item => item.fuel_type || 'بدون نوع'),
+                                datasets: [{
+                                    label: 'میانگین قیمت',
+                                    data: data.fuel_type_data.map(item => Number(item.avg_price) || 0),
+                                    backgroundColor: [
+                                        'rgba(255, 99, 132, 0.6)', 'rgba(54, 162, 235, 0.6)',
+                                        'rgba(255, 206, 86, 0.6)'
+                                    ],
+                                    borderWidth: 1
+                                }]
+                            },
+                            options: {
+                                plugins: { legend: { display: true, position: 'top' } }
+                            }
+                        });
+                        console.log('نمودار fuelType رسم شد.');
+                    } else {
+                        console.error('عنصر fuelTypeChart پیدا نشد!');
+                    }
+                })
+                .catch(error => console.error('خطا در دریافت یا پردازش داده‌ها:', error));
+        }
+
+        // اجرای تابع بعد از لود صفحه
+        document.addEventListener('DOMContentLoaded', fetchChartData);
+    </script>
+</body>
+</html>

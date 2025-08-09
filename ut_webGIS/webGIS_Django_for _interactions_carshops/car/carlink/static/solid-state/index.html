@@ -1,0 +1,94 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Solid State by HTML5 UP</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+    <link rel="stylesheet" href="{% static 'solid-state/assets/css/main.css' %}" />
+    <noscript><link rel="stylesheet" href="{% static 'solid-state/assets/css/noscript.css' %}" /></noscript>
+</head>
+<body class="is-preload">
+
+<!-- Page Wrapper -->
+<div id="page-wrapper">
+
+    <!-- Header -->
+    <header id="header" class="alt">
+        <h1><a href="#">Solid State</a></h1>
+        <nav>
+            <a href="#menu">Menu</a>
+        </nav>
+    </header>
+
+    <!-- Menu -->
+    <nav id="menu">
+        <div class="inner">
+            <h2>Menu</h2>
+            <ul class="links">
+                <li><a href="#">Home</a></li>
+                <li><a href="#">Generic</a></li>
+                <li><a href="#">Elements</a></li>
+                <li><a href="#">Log In</a></li>
+                <li><a href="#">Sign Up</a></li>
+            </ul>
+            <a href="#" class="close">Close</a>
+        </div>
+    </nav>
+
+    <!-- Banner -->
+    <section id="banner">
+        <div class="inner">
+            <div class="logo"><span class="icon fa-gem"></span></div>
+            <h2>This is Solid State</h2>
+            <p>Another free + fully responsive site template by <a href="http://html5up.net">HTML5 UP</a></p>
+        </div>
+    </section>
+
+    <!-- Wrapper -->
+    <section id="wrapper">
+
+        <!-- Sample Section -->
+        <section id="one" class="wrapper spotlight style1">
+            <div class="inner">
+                <a href="#" class="image"><img src="{% static 'solid-state/images/pic01.jpg' %}" alt="" /></a>
+                <div class="content">
+                    <h2 class="major">Magna arcu feugiat</h2>
+                    <p>Lorem ipsum...</p>
+                    <a href="#" class="special">Learn more</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- ... سایر بخش‌ها نیز به همین شکل اصلاح می‌شن -->
+
+    </section>
+
+    <!-- Footer -->
+    <section id="footer">
+        <div class="inner">
+            <h2 class="major">Get in touch</h2>
+            <form method="post" action="#">
+                <div class="fields">
+                    <div class="field"><label for="name">Name</label><input type="text" name="name" id="name" /></div>
+                    <div class="field"><label for="email">Email</label><input type="email" name="email" id="email" /></div>
+                    <div class="field"><label for="message">Message</label><textarea name="message" id="message" rows="4"></textarea></div>
+                </div>
+                <ul class="actions"><li><input type="submit" value="Send Message" /></li></ul>
+            </form>
+            <!-- ... -->
+        </div>
+    </section>
+
+</div>
+
+<!-- Scripts -->
+<script src="{% static 'solid-state/assets/js/jquery.min.js' %}"></script>
+<script src="{% static 'solid-state/assets/js/jquery.scrollex.min.js' %}"></script>
+<script src="{% static 'solid-state/assets/js/browser.min.js' %}"></script>
+<script src="{% static 'solid-state/assets/js/breakpoints.min.js' %}"></script>
+<script src="{% static 'solid-state/assets/js/util.js' %}"></script>
+<script src="{% static 'solid-state/assets/js/main.js' %}"></script>
+
+</body>
+</html>

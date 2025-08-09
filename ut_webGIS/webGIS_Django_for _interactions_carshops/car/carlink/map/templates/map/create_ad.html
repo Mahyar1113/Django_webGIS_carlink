@@ -1,0 +1,66 @@
+
+{% load static %}
+
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<title>Elements - Solid State by HTML5 UP</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		<link rel="stylesheet" href="{% static 'solid-state/assets/css/main.css' %}" />
+		<noscript><link rel="stylesheet" href="{% static 'solid-state/assets/css/noscript.css' %}" /></noscript>
+	</head>
+	<body class="is-preload">
+        <section id="main" class="wrapper">
+            <div class="inner">
+                <header class="major">
+                    <h2>ثبت آگهی جدید</h2>
+                </header>
+        
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-success" style="color: green; margin-bottom: 1rem;">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+        
+                <form method="post" action="{% url 'create_ad' %}" class="form">
+                    {% csrf_token %}
+                    <div class="fields">
+                        <div class="field half">
+                            <label for="title">عنوان آگهی</label>
+                            <input type="text" name="title" id="title" placeholder="عنوان آگهی" required />
+                        </div>
+        
+                        <div class="field">
+                            <label for="description">توضیحات</label>
+                            <textarea name="description" id="description" rows="4" placeholder="توضیحات..." required></textarea>
+                        </div>
+        
+                        <div class="field half">
+                            <label for="price">قیمت (تومان)</label>
+                            <input type="number" name="price" id="price" placeholder="قیمت" step="0.01" required />
+                        </div>
+                    </div>
+        
+                    <ul class="actions">
+                        <li><input type="submit" value="ثبت آگهی" class="primary" /></li>
+                    </ul>
+                </form>
+            </div>
+        </section>								
+									
+		<!-- Scripts -->
+        <script src="{% static 'solid-state/assets/js/jquery.min.js' %}"></script>
+        <script src="{% static 'solid-state/assets/js/jquery.scrollex.min.js' %}"></script>
+        <script src="{% static 'solid-state/assets/js/browser.min.js' %}"></script>
+        <script src="{% static 'solid-state/assets/js/breakpoints.min.js' %}"></script>
+        <script src="{% static 'solid-state/assets/js/util.js' %}"></script>
+        <script src="{% static 'solid-state/assets/js/main.js' %}"></script>
+	</body>
+</html>									
+
+
+
+

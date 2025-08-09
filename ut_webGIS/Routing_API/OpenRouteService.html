@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>مسیریابی پیشرفته با چند بیس‌مپ</title>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+  <style>
+    #map { height: 500px; width: 100%; }
+    body { font-family: Tahoma; margin: 0; padding: 10px; }
+    .controls {
+      background: #f8f9fa;
+      padding: 15px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    input, button {
+      padding: 10px;
+      margin: 5px 0;
+      width: 100%;
+      max-width: 300px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    button {
+      background: #3498db;
+      color: white;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    button:hover { background: #2980b9; }
+    .instructions {
+      font-size: 14px;
+      color: #666;
+      margin-top: 10px;
+    }
+    .leaflet-control-layers-selector {
+      margin-right: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="controls">
+    <h2 style="margin-top: 0;">مسیریابی هوشمند</h2>
+    <input type="text" id="startInput" placeholder="مبدأ (مثال: تهران، میدان آزادی)">
+    <input type="text" id="endInput" placeholder="مقصد (مثال: رشت، میدان شهرداری)">
+    <button onclick="findRouteByText()">نمایش مسیر</button>
+    <div class="instructions">
+      یا روی نقشه کلیک کنید:<br>
+      کلیک اول: مبدأ | کلیک دوم: مقصد
+    </div>
+  </div>
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+  <script>
+    // تنظیمات اولیه
+    const map = L.map('map').setView([35.6892, 51.3890], 6);
+    
+    // تعریف بیس‌مپ‌های مختلف
+    const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 19
+    });
+    
+    const esriStreets = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+      attribution: 'Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ',
+      maxZoom: 19
+    });
+    
+    const esriTopo = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+      attribution: 'Tiles &copy; Esri',
+      maxZoom: 19
+    });
+    
+    // اضافه کردن بیس‌مپ پیش‌فرض
+    osm.addTo(map);
+    
+    // تعریف کنترل لایه‌ها
+    const baseLayers = {
+      "OpenStreetMap": osm,
+      "ESRI Streets": esriStreets,
+      "ESRI Topographic": esriTopo
+    };
+    L.control.layers(baseLayers).addTo(map);
+	
+	
+    
+    const apiKey = 'eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6IjM0MDNjM2ZlYjg5NDQ1MzViNTk2ZmM5ZDRlM2Y3YTIyIiwiaCI6Im11cm11cjY0In0=';
+    let startPoint = null;
+    let endPoint = null;
+    let routeLayer = null;
+    const markers = [];
+    
+    // پاک کردن مسیر و مارکرهای قبلی
+    function clearMap() {
+      if (routeLayer) map.removeLayer(routeLayer);
+      markers.forEach(marker => map.removeLayer(marker));
+      markers.length = 0;
+    }
+    
+    // جئوکدینگ (تبدیل آدرس به مختصات)
+    function geocode(address, callback) {
+      fetch(`https://api.openrouteservice.org/geocode/search?api_key=${apiKey}&text=${encodeURIComponent(address)}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.features && data.features.length > 0) {
+            const firstResult = data.features[0];
+            callback({
+              lat: firstResult.geometry.coordinates[1],
+              lng: firstResult.geometry.coordinates[0],
+              name: firstResult.properties.label
+            });
+          } else {
+            alert("آدرس یافت نشد!");
+          }
+        })
+        .catch(error => {
+          console.error("خطا در جئوکدینگ:", error);
+          alert("خطا در یافتن آدرس");
+        });
+    }
+    
+    // نمایش مسیر
+    function showRoute(start, end) {
+      clearMap();
+      
+      // اضافه کردن مارکرها
+      markers.push(L.marker([start.lat, start.lng]).addTo(map).bindPopup(`<b>مبدأ:</b> ${start.name}`).openPopup());
+      markers.push(L.marker([end.lat, end.lng]).addTo(map).bindPopup(`<b>مقصد:</b> ${end.name}`));
+      
+      // دریافت مسیر از API
+      fetch(`https://api.openrouteservice.org/v2/directions/driving-car?api_key=${apiKey}&start=${start.lng},${start.lat}&end=${end.lng},${end.lat}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.features?.[0]?.geometry) {
+            const duration = Math.round(data.features[0].properties.segments[0].duration / 60);
+            const distance = (data.features[0].properties.segments[0].distance / 1000).toFixed(1);
+            
+            routeLayer = L.geoJSON(data.features[0].geometry, {
+              style: { color: '#e74c3c', weight: 5 }
+            }).addTo(map).bindPopup(`
+              <div style="font-size: 14px;">
+                <div><b>⏱ زمان سفر:</b> ${duration} دقیقه</div>
+                <div><b>📏 مسافت:</b> ${distance} کیلومتر</div>
+              </div>
+            `).openPopup();
+            
+            map.fitBounds(routeLayer.getBounds());
+          }
+        });
+    }
+    
+    // مسیریابی با کلیک
+    map.on('click', e => {
+      if (!startPoint) {
+        startPoint = { lat: e.latlng.lat, lng: e.latlng.lng, name: "نقطه انتخابی روی نقشه" };
+        document.getElementById('startInput').value = startPoint.name;
+      } else {
+        endPoint = { lat: e.latlng.lat, lng: e.latlng.lng, name: "نقطه انتخابی روی نقشه" };
+        document.getElementById('endInput').value = endPoint.name;
+        showRoute(startPoint, endPoint);
+        startPoint = null;
+        endPoint = null;
+      }
+    });
+    
+    // مسیریابی با متن
+    function findRouteByText() {
+      const startText = document.getElementById('startInput').value.trim();
+      const endText = document.getElementById('endInput').value.trim();
+      
+      if (!startText || !endText) {
+        alert("لطفاً مبدأ و مقصد را وارد کنید");
+        return;
+      }
+      
+      // جئوکدینگ مبدأ
+      geocode(startText, function(start) {
+        // جئوکدینگ مقصد
+        geocode(endText, function(end) {
+          showRoute(start, end);
+        });
+      });
+    }
+  </script>
+</body>
+</html>

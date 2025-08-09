@@ -1,0 +1,119 @@
+{% load static %}
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<title>لیست آگهی‌ها </title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		<link rel="stylesheet" href="{% static 'solid-state/assets/css/main.css' %}" />
+        <noscript><link rel="stylesheet" href="{% static 'solid-state/assets/css/noscript.css' %}" /></noscript>
+		<style>
+			.card-container {
+				display: flex;
+				flex-wrap: wrap;
+				justify-content: center;
+				gap: 20px;
+				padding: 20px 0;
+			}
+			.card {
+				width: 350px; /* افزایش اندازه کارت */
+				height: 300px; /* ارتفاع ثابت برای هماهنگی با تصویر */
+				background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('{% static "images/pic04.jpg" %}') no-repeat center;
+				background-size: cover;
+				border-radius: 8px;
+				padding: 20px;
+				text-align: center;
+				position: relative;
+				box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+				color: #ffffff;
+				overflow: hidden;
+			}
+			.card-title {
+				font-size: 1.5rem;
+				margin-bottom: 10px;
+				color: #8a2be2;
+			}
+			.card-text {
+				color: #c0c0c0;
+				margin-bottom: 10px;
+				font-size: 0.9rem;
+			}
+			.text-success {
+				color: #28a745;
+			}
+			.text-secondary {
+				color: #6c757d;
+			}
+			.card .special {
+				position: absolute;
+				bottom: 20px;
+				left: 50%;
+				transform: translateX(-50%);
+				background: rgba(255, 255, 255, 0.1);
+				border: 1px solid #ffffff;
+				border-radius: 50px;
+				padding: 10px 20px;
+				text-decoration: none;
+				color: #ffffff;
+				font-size: 0.9rem;
+				transition: all 0.3s ease;
+			}
+			.card .special:hover {
+				background: #ffffff;
+				color: #1e252d;
+			}
+			.alert-warning {
+				background-color: #fff3cd;
+				color: #856404;
+				border-color: #ffeeba;
+				padding: 10px;
+				border-radius: 5px;
+				text-align: center;
+				max-width: 600px;
+				margin: 20px auto;
+			}
+			/* اگر تصویر وجود دارد */
+			.card.with-image {
+				background-image: url('{{ ad.image.url }}');
+			}
+		</style>
+	</head>
+	<body class="is-preload">
+		<section id="wrapper">
+			<header>
+				<div class="inner">
+					<h2>لیست آگهی‌ها</h2>
+				</div>
+			</header>
+			<div class="wrapper">
+				<div class="inner">
+					{% if ads %}
+						<div class="card-container">
+							{% for ad in ads %}
+								<div class="card {% if ad.image %}with-image{% endif %}" {% if ad.image %}style="background-image: url('{{ ad.image.url }}');"{% endif %}>
+									<div>
+										<h5 class="card-title">{{ ad.title }}</h5>
+										<p class="card-text">{{ ad.description|truncatewords:15 }}</p>
+										<p class="card-text"><strong class="text-success">قیمت:</strong> {{ ad.price|floatformat:2 }} تومان</p>
+										<p class="card-text"><small class="text-secondary">تاریخ: {{ ad.created_at|date:"Y-m-d H:i" }}</small></p>
+									</div>
+									<a href="#" class="special">Learn More</a>
+								</div>
+							{% endfor %}
+						</div>
+					{% else %}
+						<div class="alert alert-warning">
+							هیچ آگهی تأییدشده‌ای وجود ندارد.
+						</div>
+					{% endif %}
+				</div>
+			</div>
+		</section>
+		<script src="{% static 'solid-state/assets/js/jquery.min.js' %}"></script>
+		<script src="{% static 'solid-state/assets/js/jquery.scrollex.min.js' %}"></script>
+        <script src="{% static 'solid-state/assets/js/browser.min.js' %}"></script>
+        <script src="{% static 'solid-state/assets/js/breakpoints.min.js' %}"></script>
+        <script src="{% static 'solid-state/assets/js/util.js' %}"></script>
+        <script src="{% static 'solid-state/assets/js/main.js' %}"></script>
+	</body>
+</html>

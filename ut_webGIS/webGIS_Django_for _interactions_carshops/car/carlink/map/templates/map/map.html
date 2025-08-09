@@ -1,0 +1,1406 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+    <head>
+        <title>CarLink - نقشه تعاملی</title>
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="stylesheet" href="{% static 'css/custom-popup.css' %}" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+        <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
+        <style>
+            body { background-color: #2c3e50; color: #ffffff; font-family: 'Vazirmatn', sans-serif; margin: 0; padding: 0; }
+            .navbar { 
+                background: #34495e; 
+                padding: 10px 20px; 
+                border-bottom: 1px solid #2c3e50; 
+                z-index: 2001; 
+                position: relative; 
+            }
+            .navbar-brand { color: #ffffff; font-size: 1.5rem; }
+            .navbar-nav .nav-link { color: #ffffff !important; font-size: 1rem; }
+            .navbar-nav .nav-link:hover { color: #077fef !important; }
+            .navbar-toggler { border-color: #ffffff; }
+            .navbar-toggler-icon { background-color: #ffffff; }
+            .header-panel { 
+                background: #34495e; 
+                padding: 10px 20px; 
+                border-bottom: 1px solid #2c3e50; 
+                position: relative; 
+                z-index: 2000; 
+            }
+            .routing-panel { 
+                background: #ffffff; 
+                padding: 15px; 
+                border-radius: 8px; 
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); 
+                color: #333; 
+                margin: 10px auto; 
+                max-width: 1200px; 
+                display: none; 
+            }
+            .map-container { 
+                position: relative; 
+                margin: 20px auto; 
+                max-width: 1200px; 
+            }
+            #map { height: 500px; width: 100%; border-radius: 10px; }
+            .layer-control { 
+                position: absolute; 
+                top: 10px; 
+                right: 10px; 
+                background: #2c2c2c; 
+                padding: 10px; 
+                border-radius: 5px; 
+                z-index: 1000; 
+                color: #ffffff; 
+                display: none; 
+                transition: opacity 0.3s ease; 
+            }
+            .layer-control label { margin: 5px 0; display: block; }
+            .legend { 
+                position: absolute; 
+                bottom: 10px; 
+                left: 10px; 
+                background: #2c2c2c; 
+                padding: 5px; 
+                border-radius: 5px; 
+                z-index: 1000; 
+                color: #ffffff; 
+                font-size: 12px; 
+                max-width: 150px; 
+            }
+            .legend-item { margin: 5px 0; display: flex; align-items: center; }
+            .legend-circle { width: 8px; height: 8px; display: inline-block; border-radius: 50%; margin-right: 5px; }
+            @media (max-width: 768px) {
+                .legend { 
+                    bottom: 5px; 
+                    left: 5px; 
+                    padding: 3px; 
+                    max-width: 120px; 
+                    font-size: 10px; 
+                }
+                .legend-item { margin: 3px 0; }
+                .legend-circle { width: 6px; height: 6px; }
+            }
+            @media (max-width: 480px) {
+                .legend { 
+                    bottom: 2px; 
+                    left: 2px; 
+                    padding: 2px; 
+                    max-width: 100px; 
+                    font-size: 8px; 
+                }
+                .legend-item { margin: 2px 0; }
+                .legend-circle { width: 5px; height: 5px; }
+            }
+            .info-panel { 
+                position: absolute; 
+                top: 10px; 
+                left: 10px; 
+                background: #2c2c2c; 
+                padding: 10px; 
+                border-radius: 5px; 
+                z-index: 1000; 
+                color: #ffffff; 
+                display: block; 
+                max-width: 300px; 
+                font-size: 14px; 
+            }
+            .info-panel .close-btn { 
+                position: absolute; 
+                top: 5px; 
+                left: 5px; 
+                background: none; 
+                border: none; 
+                color: #ffffff; 
+                font-size: 18px; 
+                cursor: pointer; 
+            }
+            @media (max-width: 768px) {
+                .info-panel { 
+                    top: 5px; 
+                    left: 5px; 
+                    padding: 8px; 
+                    max-width: 250px; 
+                    font-size: 12px; 
+                }
+                .info-panel .close-btn { font-size: 16px; }
+            }
+            @media (max-width: 480px) {
+                .info-panel { 
+                    top: 2px; 
+                    left: 2px; 
+                    padding: 5px; 
+                    max-width: 200px; 
+                    font-size: 10px; 
+                }
+                .info-panel .close-btn { font-size: 14px; }
+            }
+            .ad-container { margin: 20px auto; max-width: 1200px; }
+            .ad-scroll-container { overflow-x: auto; white-space: nowrap; padding: 10px 0; }
+            .card { 
+                width: 350px; 
+                height: 300px; 
+                background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('{% static "images/pic04.jpg" %}') no-repeat center; 
+                background-size: cover; 
+                border-radius: 10px; 
+                padding: 20px; 
+                text-align: center; 
+                position: relative; 
+                box-shadow: 0 6px 12px rgba(0, 0, 0, 0.5); 
+                color: #ffffff; 
+                display: inline-block; 
+                margin-right: 15px; 
+                vertical-align: top; 
+                transition: transform 0.3s ease; 
+            }
+            .card:hover { transform: scale(1.05); }
+            .card-title { font-size: 1.6rem; margin-bottom: 10px; color: #9370db; text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8); }
+            .card-text { color: #d3d3d3; margin-bottom: 10px; font-size: 1rem; }
+            .text-success { color: #32cd32; }
+            .text-secondary { color: #a9a9a9; }
+            .card .special { 
+                position: absolute; 
+                bottom: 20px; 
+                left: 50%; 
+                transform: translateX(-50%); 
+                background: rgba(147, 112, 219, 0.3); 
+                border: 1px solid #9370db; 
+                border-radius: 25px; 
+                padding: 10px 25px; 
+                text-decoration: none; 
+                color: #ffffff; 
+                font-size: 1rem; 
+                transition: all 0.3s ease; 
+            }
+            .card .special:hover { background: #9370db; color: #1a1a1a; }
+            .card .ad-card-footer { position: absolute; bottom: 10px; width: 100%; text-align: center; }
+            .leaflet-tooltip { 
+                background-color: #2c2c2c; 
+                border: 1px solid #fff; 
+                border-radius: 3px; 
+                padding: 5px; 
+                color: #fff; 
+                font-size: 14px; 
+                white-space: nowrap; 
+            }
+            .region-highlight { fill-color: #0b7e02 !important; fill-opacity: 0.5 !important; transition: fill-color 0.3s ease; }
+            .control-toggle { 
+                position: absolute; 
+                top: 5px; 
+                right: 10px; 
+                background: #34495e; 
+                padding: 2px 10px; 
+                border-radius: 5px; 
+                cursor: pointer; 
+                z-index: 1001; 
+                font-size: 14px; 
+                color: #ffffff; 
+            }
+            .edit-delete-toggle { 
+                position: absolute; 
+                top: 40px; 
+                right: 10px; 
+                background: #34495e; 
+                padding: 2px 10px; 
+                border-radius: 5px; 
+                cursor: pointer; 
+                z-index: 1001; 
+                font-size: 14px; 
+                color: #ffffff; 
+                display: none; 
+            }
+            .edit-delete-toggle button { 
+                background: none; 
+                border: none; 
+                color: #ffffff; 
+                margin-left: 5px; 
+                cursor: pointer; 
+            }
+            .edit-delete-toggle button:hover { color: #077fef; }
+            @media (max-width: 768px) {
+                .control-toggle, .edit-delete-toggle {
+                    top: 10px;
+                    right: 5px;
+                    padding: 4px 8px;
+                    font-size: 12px;
+                }
+                .edit-delete-toggle { top: 45px; }
+            }
+            @media (max-width: 480px) {
+                .control-toggle, .edit-delete-toggle {
+                    top: 15px;
+                    right: 5px;
+                    padding: 3px 6px;
+                    font-size: 10px;
+                }
+                .edit-delete-toggle { top: 50px; }
+            }
+            .control-toggle:hover, .edit-delete-toggle:hover { background: #077fef; }
+            .location-toggle { 
+                position: absolute; 
+                bottom: 10px; 
+                right: 10px; 
+                width: 40px; 
+                height: 40px; 
+                background: #007bff; 
+                border-radius: 5px; 
+                cursor: pointer; 
+                z-index: 1001; 
+                display: flex; 
+                align-items: center; 
+                justify-content: center; 
+                transition: background 0.3s ease; 
+            }
+            .location-toggle i { 
+                color: #ffffff; 
+                font-size: 18px; 
+            }
+            .location-toggle:hover { background: #0056b3; }
+            @media (max-width: 768px) {
+                .location-toggle { 
+                    width: 35px; 
+                    height: 35px; 
+                    bottom: 5px; 
+                    right: 5px; 
+                }
+                .location-toggle i { font-size: 16px; }
+            }
+            @media (max-width: 480px) {
+                .location-toggle { 
+                    width: 30px; 
+                    height: 30px; 
+                    bottom: 2px; 
+                    right: 2px; 
+                }
+                .location-toggle i { font-size: 14px; }
+            }
+            .lang-toggle { 
+                position: fixed; 
+                bottom: 20px; 
+                right: 20px; 
+                background: #34495e; 
+                padding: 10px 20px; 
+                border-radius: 5px; 
+                cursor: pointer; 
+                z-index: 2002; 
+                color: #ffffff; 
+                font-size: 1rem; 
+            }
+            .lang-toggle:hover { background: #077fef; }
+            @media (max-width: 768px) {
+                .lang-toggle { 
+                    bottom: 15px; 
+                    right: 15px; 
+                    padding: 8px 15px; 
+                    font-size: 0.9rem; 
+                }
+                .routing-panel { 
+                    width: 90%; 
+                    padding: 10px; 
+                }
+                .routing-panel .form-control { 
+                    font-size: 12px; 
+                    padding: 6px; 
+                }
+            }
+            @media (max-width: 480px) {
+                .lang-toggle { 
+                    bottom: 10px; 
+                    right: 10px; 
+                    padding: 6px 12px; 
+                    font-size: 0.8rem; 
+                }
+                .routing-panel { 
+                    width: 95%; 
+                    padding: 5px; 
+                }
+                .routing-panel .form-control { 
+                    font-size: 10px; 
+                    padding: 4px; 
+                }
+            }
+            /* Custom styles for search box */
+            .search-box {
+                display: flex;
+                align-items: center;
+                background: #f7f7f8;
+                border-radius: 5px;
+                padding: 5px;
+                max-width: 300px;
+            }
+            .search-box .form-control, .search-box .form-select, .search-box .btn {
+                border: none;
+                background: transparent;
+                color: #020000;
+                font-size: 0.9rem;
+            }
+            .search-box .form-control:focus, .search-box .form-select:focus {
+                background: #34495e;
+                box-shadow: none;
+            }
+            .search-box .btn {
+                padding: 5px 10px;
+            }
+            @media (max-width: 768px) {
+                .search-box {
+                    flex-direction: column;
+                    max-width: 100%;
+                    margin-top: 10px;
+                }
+                .search-box .form-control, .search-box .form-select, .search-box .btn {
+                    width: 100%;
+                    margin-bottom: 5px;
+                }
+            }
+            /* Toggle button styles */
+            .navbar-toggle {
+                position: absolute;
+                top: 2px;
+                right: 5px;
+                background: #34495e;
+                border: none;
+                color: #ffffff;
+                font-size: 0.7rem;
+                padding: 1px 1px;
+                border-radius: 5px;
+                cursor: pointer;
+                z-index: 2002;
+            }
+            .navbar-toggle:hover {
+                background: #077fef;
+            }
+            @media (max-width: 768px) {
+                .navbar-toggle {
+                    top: 10px;
+                    right: 10px;
+                    font-size: 0.5rem;
+                    padding: 3px 8px;
+                }
+            }
+            @media (max-width: 480px) {
+                .navbar-toggle {
+                    top: 5px;
+                    right: 5px;
+                    font-size: 0.5rem;
+                    padding: 2px 6px;
+                }
+            }
+        </style>
+    </head>
+    <body class="is-preload">
+        <nav class="navbar navbar-expand-lg navbar-dark">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="/">CarLink</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav me-auto">
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'condition_analysis' %}">تحلیل داده ها</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'profile' %}">پروفایل</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'create_ad' %}">ایجاد آگهی</a>
+                        </li>
+                    </ul>
+                    <div class="search-box ms-auto">
+                        <form class="d-flex" action="{% url 'search' %}" method="get">
+                            <input class="form-control me-2" type="search" name="q" placeholder="جستجو..." aria-label="Search" value="{{ request.GET.q|default:'' }}">
+                            <select class="form-select me-2" name="search_type">
+                                <option value="all" {% if request.GET.search_type == 'all' %}selected{% endif %}>همه</option>
+                                <option value="title" {% if request.GET.search_type == 'title' %}selected{% endif %}>عنوان آگهی</option>
+                                <option value="description" {% if request.GET.search_type == 'description' %}selected{% endif %}>توضیحات آگهی</option>
+                                <option value="price" {% if request.GET.search_type == 'price' %}selected{% endif %}>قیمت</option>
+                                <option value="shop_name" {% if request.GET.search_type == 'shop_name' %}selected{% endif %}>نام نمایشگاه</option>
+                                <option value="shop_address" {% if request.GET.search_type == 'shop_address' %}selected{% endif %}>آدرس نمایشگاه</option>
+                                <option value="shop_phone" {% if request.GET.search_type == 'shop_phone' %}selected{% endif %}>تلفن نمایشگاه</option>
+                            </select>
+                            <button class="btn btn-outline-light" type="submit"><i class="fas fa-search"></i></button>
+                        </form>
+                    </div>
+                </div>
+                <button class="navbar-toggle" id="langToggle">
+                    <i class="fas fa-toggle-on"></i>
+                </button>
+            </div>
+        </nav>
+        <div id="page-wrapper">
+            <div class="header-panel">
+                <div class="routing-panel" id="routingPanel">
+                    <form>
+                        <div class="mb-3">
+                            <label for="sourceInput" class="form-label">موقعیت مبدأ (شما)</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="sourceInput" readonly placeholder="موقعیت مبدأ (شما)">
+                                <span class="input-group-text"><i class="fas fa-map-marker-alt"></i></span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="destinationInput" class="form-label">انتخاب مقصد</label>
+                            <div class="input-group">
+                                <select class="form-select" id="destinationInput">
+                                    <option value="">انتخاب مقصد</option>
+                                    <option value="nearest">نزدیک‌ترین نمایندگی</option>
+                                    {% for shop in shops %}
+                                        <option value="{{ shop.latitude }},{{ shop.longitude }}">{{ shop.name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <span class="input-group-text"><i class="fas fa-flag-checkered"></i></span>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-primary" id="routeButton">تعیین مسیر</button>
+                            <button type="button" class="btn btn-danger" id="clearRouteButton">پاک کردن مسیر</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="map-container">
+                <div class="control-toggle" id="layerToggle">مدیریت لایه‌ها</div>
+                <div class="layer-control" id="layerControl">
+                    <label><input type="checkbox" id="layerOSM" checked> لایه OSM</label>
+                    <label><input type="checkbox" id="layerPoints" checked> لایه نقطه‌ای</label>
+                    <label><input type="checkbox" id="layerSatellite"> لایه ماهواره‌ای</label>
+                    <label><input type="checkbox" id="enableDistanceAnalysis"> تحلیل فاصله</label>
+                    <label><input type="checkbox" id="enableNearestPointAnalysis"> نزدیک‌ترین نمایندگی</label>
+                    <label><input type="checkbox" id="enableDensityAnalysis"> نمایندگی‌های نزدیک شما</label>
+                    <label><input type="checkbox" id="enableHeatmap"> هیت‌مپ قیمتی</label>
+                    <label><input type="checkbox" id="showActiveShops" checked> نمایش نمایشگاه‌های فعال</label>
+                    <label><input type="checkbox" id="showInactiveShops" checked> نمایش نمایشگاه‌های غیرفعال</label>
+                    <label><input type="checkbox" id="showRegions" checked> نمایش مناطق 22 گانه تهران</label>
+                    <label><input type="checkbox" id="enableRouting"> مسیریابی</label>
+                </div>
+                <div class="location-toggle" id="locationToggle">
+                    <i class="fas fa-location-crosshairs"></i>
+                </div>
+                <div id="map"></div>
+                <div class="legend" id="shopsLegend" style="display: block;">
+                    <div class="legend-item"><span class="legend-circle" style="background-color: green;"></span> نمایشگاه فعال</div>
+                    <div class="legend-item"><span class="legend-circle" style="background-color: red;"></span> نمایشگاه غیرفعال</div>
+                </div>
+                <div class="legend" id="priceLegend" style="display: none;">
+                    <div class="legend-item"><span class="legend-circle" style="background-color: #ff0000;"></span> قیمت بالا (>600M)</div>
+                    <div class="legend-item"><span class="legend-circle" style="background-color: #ffff00;"></span> قیمت متوسط (300M-600M)</div>
+                    <div class="legend-item"><span class="legend-circle" style="background-color: #00ff00;"></span> قیمت پایین (<300M)</div>
+                </div>
+                <div class="info-panel" id="infoPanel"></div>
+                <div class="edit-delete-toggle" id="editDeleteToggle">
+                    <button id="editMarkerBtn"><i class="fas fa-edit"></i></button>
+                    <button id="deleteMarkerBtn"><i class="fas fa-trash"></i></button>
+                </div>
+            </div>
+            <div class="ad-container">
+                <div class="ad-scroll-container">
+                    <h3 class="text-end">لیست آگهی‌ها</h3>
+                    {% if ads %}
+                        {% for ad in ads %}
+                            <div class="card {% if ad.image %}with-image{% endif %}" {% if ad.image %}style="background-image: url('{{ ad.image.url }}');"{% endif %}>
+                                <div>
+                                    <h5 class="card-title">{{ ad.title }}</h5>
+                                    <p class="card-text">توضیحات: {{ ad.description|truncatechars:50 }}</p>
+                                    <p class="card-text"><strong class="text-success">قیمت:</strong> {{ ad.price|floatformat:2 }} تومان</p>
+                                    <p class="card-text"><small class="text-secondary">تاریخ: {{ ad.created_at|date:"Y-m-d H:i" }}</small></p>
+                                    <p class="card-text">صاحب آگهی: {{ ad.user.username }}</p>
+                                </div>
+                                <div class="ad-card-footer">
+                                    <a href="{% url 'chat_request' %}?receiver_id={{ ad.user.id }}&shop_id={{ ad.shop.id|default:0 }}&message=درباره آگهی {{ ad.title }}" class="btn btn-primary btn-sm">شروع چت</a>
+                                    <button class="btn btn-info btn-sm show-location" data-user-id="{{ ad.user.id }}">نمایش موقعیت</button>
+                                    <button class="btn btn-success btn-sm route-to-seller" data-user-id="{{ ad.user.id }}">مسیریابی</button>
+
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-end">هیچ آگهی تأییدشده‌ای موجود نیست.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <script src="{% static 'solid-state/assets/js/jquery.min.js' %}"></script>
+        <script src="{% static 'solid-state/assets/js/jquery.scrollex.min.js' %}"></script>
+        <script src="{% static 'solid-state/assets/js/browser.min.js' %}"></script>
+        <script src="{% static 'solid-state/assets/js/breakpoints.min.js' %}"></script>
+        <script src="{% static 'solid-state/assets/js/util.js' %}"></script>
+        <script src="{% static 'solid-state/assets/js/main.js' %}"></script>
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+        <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+        <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+        <script>
+            // تابع ایجاد پاپ‌آپ سفارشی
+            function createCustomPopup(shop) {
+                return `
+                    <div class="tooltip-header">
+                        <h3>
+                            <i class="fas fa-store"></i>
+                            ${shop.name}
+                            <span class="tooltip-badge">${shop.is_active ? 'فعال' : 'غیرفعال'}</span>
+                        </h3>
+                    </div>
+                    <div class="tooltip-body">
+                        <div class="info-row">
+                            <div class="info-label">آدرس</div>
+                            <div class="info-icon"><i class="fas fa-map-marker-alt"></i></div>
+                            <div class="info-value">${shop.address}</div>
+                        </div>
+                        <div class="info-row">
+                            <div class="info-label">تلفن</div>
+                            <div class="info-icon"><i class="fas fa-phone"></i></div>
+                            <div class="info-value">${shop.phone}</div>
+                        </div>
+                        <div class="info-row">
+                            <div class="info-label">میانگین قیمت</div>
+                            <div class="info-icon"><i class="fas fa-tag"></i></div>
+                            <div class="info-value">${shop.avg_price ? shop.avg_price.toLocaleString() + ' تومان' : 'نامعلوم'}</div>
+                        </div>
+                    </div>
+                `;
+            }
+    
+            // تنظیمات نقشه
+            var map = L.map('map', {
+                zoomControl: true,
+                touchZoom: true,
+                doubleClickZoom: true
+            }).setView([35.6892, 51.3890], 10);
+        
+    
+            var osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+            var satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Tiles © Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+            });
+    
+            var drawControl = new L.Control.Draw({
+                draw: {
+                    polygon: true,
+                    marker: true,
+                    edit: { featureGroup: drawnItems }
+                }
+            }).addTo(map);
+    
+            var shops = {{ shops|safe }};
+            var shopMarkers = [];
+            shops.forEach(function(shop) {
+                var markerColor = shop.is_active ? 'green' : 'red';
+                var marker = L.marker([shop.latitude, shop.longitude], { 
+                    icon: L.divIcon({
+                        className: 'my-custom-icon',
+                        html: `<div style="background-color: ${markerColor}; width: 15px; height: 15px; border-radius: 50%;"></div>`,
+                        iconSize: [15, 15]
+                    }) 
+                }).bindPopup(createCustomPopup(shop)).addTo(map);
+                
+                marker.options.is_active = shop.is_active;
+                marker.on('mouseover', function(e) {
+                    this.openPopup();
+                    this._icon.classList.add('highlighted-region');
+                });
+                
+                marker.on('mouseout', function(e) {
+                    this.closePopup();
+                    this._icon.classList.remove('highlighted-region');
+                });
+                
+                shopMarkers.push(marker);
+            });
+    
+            // بارگذاری و نمایش GeoJSON مناطق 22 گانه
+            var regionLayer = L.geoJSON(null, {
+                style: function (feature) {
+                    return {
+                        fillColor: '#3388ff',
+                        weight: 2,
+                        opacity: 1,
+                        color: 'white',
+                        dashArray: '3',
+                        fillOpacity: 0.3
+                    };
+                },
+                onEachFeature: function (feature, layer) {
+                    fetch(`/region-shop-count/?region=${feature.properties.reg_no}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            var shopCount = data.shop_count || 0;
+                            layer.bindTooltip(`منطقه ${feature.properties.reg_no}: ${shopCount} نمایشگاه`, {
+                                permanent: false,
+                                direction: 'top',
+                                className: 'leaflet-tooltip'
+                            });
+                        })
+                        .catch(error => console.error(`خطا در دریافت تعداد نمایشگاه‌ها برای منطقه ${feature.properties.reg_no}:`, error));
+    
+                    layer.on('mouseover', function (e) {
+                        this.setStyle({
+                            fillColor: '#ffff00',
+                            fillOpacity: 0.5
+                        });
+                    });
+    
+                    layer.on('mouseout', function (e) {
+                        this.setStyle({
+                            fillColor: '#3388ff',
+                            fillOpacity: 0.3
+                        });
+                    });
+    
+                    layer.on('click', function (e) {
+                        updateInfoPanel(`<p>منطقه ${feature.properties.reg_no}</p>`);
+                    });
+                }
+            });
+    
+            fetch('{% static "geojson/region_22.geojson" %}')
+                .then(response => response.json())
+                .then(data => {
+                    regionLayer.addData(data);
+                    if (document.getElementById('showRegions').checked) {
+                        regionLayer.addTo(map);
+                    }
+                })
+                .catch(error => console.error('خطا در بارگذاری GeoJSON:', error));
+    
+            // Initial setup of markers based on checkbox states
+            function updateMarkers() {
+                shopMarkers.forEach(marker => {
+                    var show = (marker.options.is_active && document.getElementById('showActiveShops').checked) ||
+                               (!marker.options.is_active && document.getElementById('showInactiveShops').checked);
+                    if (document.getElementById('layerPoints').checked && show && !document.getElementById('enableHeatmap').checked) {
+                        map.addLayer(marker);
+                    } else {
+                        map.removeLayer(marker);
+                    }
+                });
+            }
+    
+            var priceData = [];
+            var maxPrice = 0;
+            var minPrice = Infinity;
+            shops.forEach(function(shop) {
+                var intensity = shop.avg_price ? shop.avg_price / 1000000 : 0;
+                if (intensity > 0) {
+                    maxPrice = Math.max(maxPrice, intensity);
+                    minPrice = Math.min(minPrice, intensity);
+                    priceData.push([shop.latitude, shop.longitude, intensity]);
+                }
+            });
+    
+            var heatLayer = L.heatLayer(priceData, {
+                radius: 20,
+                blur: 10,
+                maxZoom: 17,
+                gradient: {
+                    0.0: 'blue',
+                    0.5: 'yellow',
+                    1.0: 'red'
+                },
+                max: maxPrice,
+                minOpacity: 0.3
+            });
+    
+            const urlParams = new URLSearchParams(window.location.search);
+            const lat = urlParams.get('lat');
+            const lng = urlParams.get('lng');
+            if (lat && lng) {
+                shopMarkers.forEach(marker => map.removeLayer(marker));
+                map.removeLayer(heatLayer);
+    
+                var customIcon = L.icon({
+                    iconUrl: '{% static "map/images/marker-icon.png" %}',
+                    iconSize: [35, 35],
+                    iconAnchor: [19, 38],
+                    popupAnchor: [0, -38]
+                });
+                var targetMarker = L.marker([parseFloat(lat), parseFloat(lng)], { icon: customIcon })
+                    .addTo(map)
+                    .bindPopup("نمایشگاه انتخاب‌شده");
+                map.flyTo([parseFloat(lat), parseFloat(lng)], 17, {
+                    animate: true,
+                    duration: 1.5 // Duration of the fly-to animation in seconds
+                });
+            }
+    
+            var drawnItems = new L.FeatureGroup().addTo(map);
+            var distanceLine = null;
+            var nearestPointMarker = null;
+            var nearestLine = null;
+            var densityCircle = null;
+            var points = [];
+            var userLocationMarker = null;
+            var routingControl = null;
+            var selectedMarker = null;
+            var infoPanel = document.getElementById('infoPanel');
+    
+            function updateInfoPanel(content) {
+                if (content) {
+                    infoPanel.innerHTML = `<button class="close-btn" onclick="this.parentElement.style.display='none'">&times;</button>` + content;
+                    infoPanel.style.display = 'block';
+                } else {
+                    infoPanel.style.display = 'none';
+                }
+            }
+    
+            function clearDistanceAnalysis() {
+                if (distanceLine) map.removeLayer(distanceLine);
+                drawnItems.clearLayers();
+                points = [];
+                updateInfoPanel('');
+            }
+    
+            function clearNearestPointAnalysis() {
+                if (nearestPointMarker) map.removeLayer(nearestPointMarker);
+                if (nearestLine) map.removeLayer(nearestLine);
+                drawnItems.clearLayers();
+                points = [];
+                updateInfoPanel('');
+            }
+    
+            function clearDensityAnalysis() {
+                if (densityCircle) map.removeLayer(densityCircle);
+                drawnItems.clearLayers();
+                points = [];
+                updateInfoPanel('');
+            }
+    
+            function clearRouting() {
+                if (routingControl) {
+                    map.removeControl(routingControl);
+                    routingControl = null;
+                }
+                document.getElementById('destinationInput').value = '';
+                document.getElementById('destinationInput').dataset.lat = '';
+                document.getElementById('destinationInput').dataset.lng = '';
+                updateInfoPanel('');
+            }
+    
+            map.on('draw:created', function(e) {
+                var layer = e.layer;
+                drawnItems.addLayer(layer);
+    
+                if (layer instanceof L.Marker) {
+                    drawnItems.clearLayers();
+                    drawnItems.addLayer(layer);
+                    points = [layer.getLatLng()];
+    
+                    layer.on('click', function(e) {
+                        selectedMarker = layer;
+                        document.getElementById('editDeleteToggle').style.display = 'block';
+                        updateInfoPanel('<p>نقطه انتخاب شد. می‌توانید ویرایش یا حذف کنید.</p>');
+                    });
+    
+                    if (document.getElementById('enableDistanceAnalysis').checked && points.length === 2) {
+                        if (distanceLine) map.removeLayer(distanceLine);
+    
+                        var from = turf.point([points[0].lng, points[0].lat]);
+                        var to = turf.point([points[1].lng, points[1].lat]);
+                        var distance = turf.distance(from, to, { units: 'kilometers' }).toFixed(2);
+    
+                        distanceLine = L.polyline(points, {
+                            color: 'blue',
+                            dashArray: '5, 5'
+                        }).addTo(map);
+    
+                        updateInfoPanel(`
+                            <p>فاصله: ${distance} کیلومتر</p>
+                        `);
+    
+                        points = [];
+                    }
+    
+                    if (document.getElementById('enableNearestPointAnalysis').checked && points.length === 1) {
+                        var targetPoint = turf.point([points[0].lng, points[0].lat]);
+                        var shopPoints = shops.map(shop => turf.point([shop.longitude, shop.latitude], { name: shop.name, address: shop.address, phone: shop.phone, is_active: shop.is_active }));
+                        var nearest = turf.nearestPoint(targetPoint, turf.featureCollection(shopPoints));
+    
+                        if (nearestPointMarker) map.removeLayer(nearestPointMarker);
+                        nearestPointMarker = L.marker([nearest.geometry.coordinates[1], nearest.geometry.coordinates[0]], {
+                            icon: L.divIcon({
+                                className: 'my-custom-icon',
+                                html: `<div style="background-color: ${nearest.properties.is_active ? 'green' : 'red'}; width: 15px; height: 15px; border-radius: 50%;"></div>`,
+                                iconSize: [15, 15]
+                            })
+                        }).addTo(map).bindPopup(createCustomPopup(nearest.properties));
+    
+                        var distanceToNearest = turf.distance(targetPoint, nearest, { units: 'kilometers' }).toFixed(2);
+    
+                        if (nearestLine) map.removeLayer(nearestLine);
+                        nearestLine = L.polyline([
+                            [points[0].lat, points[0].lng],
+                            [nearest.geometry.coordinates[1], nearest.geometry.coordinates[0]]
+                        ], {
+                            color: 'purple',
+                            dashArray: '5, 5'
+                        }).addTo(map);
+    
+                        updateInfoPanel(`
+                            <p>نزدیک‌ترین نمایندگی:</p>
+                            <p>1- ${nearest.properties.name} (تلفن: ${nearest.properties.phone})</p>
+                            <p>فاصله: ${distanceToNearest} کیلومتر</p>
+                        `);
+    
+                        points = [];
+                    }
+    
+                    if (document.getElementById('enableDensityAnalysis').checked && points.length === 1) {
+                        var radiusInput = prompt('لطفاً شعاع (به کیلومتر) را تعیین کنید:', '5');
+                        var radius = parseFloat(radiusInput) || 5;
+    
+                        var targetPoint = turf.point([points[0].lng, points[0].lat]);
+                        var shopPoints = shops.map(shop => turf.point([shop.longitude, shop.latitude], { name: shop.name, phone: shop.phone }));
+                        var nearbyShops = [];
+                        shopPoints.forEach((shopPoint, index) => {
+                            var distance = turf.distance(targetPoint, shopPoint, { units: 'kilometers' });
+                            if (distance <= radius) {
+                                nearbyShops.push({ name: shops[index].name, phone: shops[index].phone, distance: distance });
+                            }
+                        });
+    
+                        nearbyShops.sort((a, b) => a.distance - b.distance);
+    
+                        if (densityCircle) map.removeLayer(densityCircle);
+                        densityCircle = L.circle([points[0].lat, points[0].lng], {
+                            color: 'orange',
+                            fillColor: '#f03',
+                            fillOpacity: 0.2,
+                            radius: radius * 1000
+                        }).addTo(map);
+    
+                        var infoContent = `<p>نمایندگی‌های نزدیک در شعاع ${radius} کیلومتر:</p>`;
+                        nearbyShops.forEach((shop, index) => {
+                            infoContent += `<p>${index + 1}- ${shop.name} (تلفن: ${shop.phone})</p>`;
+                        });
+                        updateInfoPanel(infoContent);
+    
+                        points = [];
+                    }
+    
+                    if (document.getElementById('enableRouting').checked && points.length === 1) {
+                        var destinationInput = document.getElementById('destinationInput');
+                        if (destinationInput.value === '') {
+                            var latLng = points[0];
+                            destinationInput.value = `${latLng.lat.toFixed(6)},${latLng.lng.toFixed(6)}`;
+                            destinationInput.dataset.lat = latLng.lat;
+                            destinationInput.dataset.lng = latLng.lng;
+                            updateInfoPanel('<p>موقعیت مقصد انتخاب شد. روی "تعیین مسیر" کلیک کنید.</p>');
+                            points = [];
+                        }
+                    }
+                }
+            });
+    
+            document.getElementById('enableDistanceAnalysis').addEventListener('change', function() {
+                if (!this.checked) clearDistanceAnalysis();
+            });
+    
+            document.getElementById('enableNearestPointAnalysis').addEventListener('change', function() {
+                if (!this.checked) clearNearestPointAnalysis();
+            });
+    
+            document.getElementById('enableDensityAnalysis').addEventListener('change', function() {
+                if (!this.checked) clearDensityAnalysis();
+            });
+    
+            document.getElementById('enableHeatmap').addEventListener('change', function() {
+                if (this.checked) {
+                    map.addLayer(heatLayer);
+                    document.getElementById('shopsLegend').style.display = 'none';
+                    document.getElementById('priceLegend').style.display = 'block';
+                    shopMarkers.forEach(marker => map.removeLayer(marker));
+                } else {
+                    map.removeLayer(heatLayer);
+                    document.getElementById('priceLegend').style.display = 'none';
+                    document.getElementById('shopsLegend').style.display = 'block';
+                    updateMarkers();
+                }
+            });
+    
+            document.getElementById('layerOSM').addEventListener('change', function() {
+                if (this.checked) map.addLayer(osmLayer);
+                else map.removeLayer(osmLayer);
+            });
+    
+            document.getElementById('layerPoints').addEventListener('change', function() {
+                updateMarkers();
+            });
+    
+            document.getElementById('layerSatellite').addEventListener('change', function() {
+                if (this.checked) map.addLayer(satelliteLayer);
+                else map.removeLayer(satelliteLayer);
+            });
+    
+            document.getElementById('showActiveShops').addEventListener('change', function() {
+                updateMarkers();
+            });
+    
+            document.getElementById('showInactiveShops').addEventListener('change', function() {
+                updateMarkers();
+            });
+    
+            document.getElementById('showRegions').addEventListener('change', function() {
+                if (this.checked) map.addLayer(regionLayer);
+                else map.removeLayer(regionLayer);
+            });
+    
+            // کنترل نمایش پنل لایه‌ها
+            const layerToggle = document.getElementById('layerToggle');
+            const layerControl = document.getElementById('layerControl');
+    
+            layerToggle.addEventListener('mouseover', function() {
+                layerControl.style.display = 'block';
+            });
+    
+            layerToggle.addEventListener('mouseout', function(e) {
+                if (!layerControl.contains(e.relatedTarget)) {
+                    layerControl.style.display = 'none';
+                }
+            });
+    
+            layerControl.addEventListener('mouseover', function() {
+                layerControl.style.display = 'block';
+            });
+    
+            layerControl.addEventListener('mouseout', function(e) {
+                if (!layerToggle.contains(e.relatedTarget)) {
+                    layerControl.style.display = 'none';
+                }
+            });
+    
+            // انتخاب و ذخیره موقعیت کاربر
+            let isSelectingLocation = false;
+            const locationToggle = document.getElementById('locationToggle');
+            let userLocation = null;
+    
+            // لود موقعیت کاربر از دیتابیس
+            {% if location_coords %}
+                userLocation = L.latLng({{ location_coords.1 }}, {{ location_coords.0 }});
+                userLocationMarker = L.marker(userLocation, {
+                    icon: L.divIcon({
+                        className: 'my-custom-icon',
+                        html: `<div style="background-color: blue; width: 15px; height: 15px; border-radius: 50%;"></div>`,
+                        iconSize: [15, 15]
+                    })
+                }).addTo(map).bindPopup('موقعیت شما').openPopup();
+                document.getElementById('sourceInput').value = `${userLocation.lat.toFixed(6)}, ${userLocation.lng.toFixed(6)}`;
+                document.getElementById('sourceInput').dataset.lat = userLocation.lat;
+                document.getElementById('sourceInput').dataset.lng = userLocation.lng;
+            {% else %}
+                updateInfoPanel('<p>لطفاً موقعیت خود را روی نقشه انتخاب کنید.</p>');
+                isSelectingLocation = true;
+                locationToggle.classList.add('active');
+                map.on('click', onMapClick);
+            {% endif %}
+    
+            locationToggle.addEventListener('click', function() {
+                isSelectingLocation = !isSelectingLocation;
+                if (isSelectingLocation) {
+                    this.classList.add('active');
+                    map.on('click', onMapClick);
+                    updateInfoPanel('<p>لطفاً روی نقشه کلیک کنید تا موقعیت خود را انتخاب کنید.</p>');
+                } else {
+                    this.classList.remove('active');
+                    map.off('click', onMapClick);
+                    if (userLocationMarker) {
+                        map.removeLayer(userLocationMarker);
+                        userLocationMarker = null;
+                        document.getElementById('sourceInput').value = '';
+                        document.getElementById('sourceInput').dataset.lat = '';
+                        document.getElementById('sourceInput').dataset.lng = '';
+                    }
+                    updateInfoPanel('');
+                }
+            });
+    
+            function onMapClick(e) {
+                if (isSelectingLocation) {
+                    if (userLocationMarker) {
+                        map.removeLayer(userLocationMarker);
+                    }
+                    userLocationMarker = L.marker(e.latlng, {
+                        icon: L.divIcon({
+                            className: 'my-custom-icon',
+                            html: `<div style="background-color: blue; width: 15px; height: 15px; border-radius: 50%;"></div>`,
+                            iconSize: [15, 15]
+                        })
+                    }).addTo(map).bindPopup('موقعیت شما').openPopup();
+    
+                    const userLocation = {
+                        lat: e.latlng.lat,
+                        lng: e.latlng.lng
+                    };
+    
+                    fetch('/save-user-location/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        },
+                        body: JSON.stringify(userLocation)
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            updateInfoPanel(`<p>${data.message} (${userLocation.lat.toFixed(6)}, ${userLocation.lng.toFixed(6)})</p>`);
+                            document.getElementById('sourceInput').value = `${userLocation.lat.toFixed(6)}, ${userLocation.lng.toFixed(6)}`;
+                            document.getElementById('sourceInput').dataset.lat = userLocation.lat;
+                            document.getElementById('sourceInput').dataset.lng = userLocation.lng;
+                            isSelectingLocation = false;
+                            locationToggle.classList.remove('active');
+                            map.off('click', onMapClick);
+                        } else {
+                            updateInfoPanel('<p>خطا در ذخیره موقعیت.</p>');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('خطا در ارسال:', error);
+                        updateInfoPanel('<p>خطای شبکه رخ داد.</p>');
+                    });
+                }
+            }
+    
+            // مدیریت مسیریابی
+            const routingPanel = document.getElementById('routingPanel');
+            const enableRouting = document.getElementById('enableRouting');
+            const sourceInput = document.getElementById('sourceInput');
+            const destinationInput = document.getElementById('destinationInput');
+            const routeButton = document.getElementById('routeButton');
+            const clearRouteButton = document.getElementById('clearRouteButton');
+    
+            enableRouting.addEventListener('change', function() {
+                if (this.checked) {
+                    routingPanel.style.display = 'block';
+                    {% if not location_coords %}
+                        updateInfoPanel('<p>لطفاً ابتدا موقعیت خود را انتخاب کنید.</p>');
+                    {% endif %}
+                } else {
+                    routingPanel.style.display = 'none';
+                    clearRouting();
+                }
+            });
+    
+            destinationInput.addEventListener('change', function() {
+                const value = this.value;
+                if (value === 'nearest' && userLocationMarker) {
+                    const userPoint = turf.point([userLocationMarker.getLatLng().lng, userLocationMarker.getLatLng().lat]);
+                    const shopPoints = shops.map(shop => turf.point([shop.longitude, shop.latitude], { name: shop.name, latitude: shop.latitude, longitude: shop.longitude }));
+                    const nearest = turf.nearestPoint(userPoint, turf.featureCollection(shopPoints));
+                    this.value = `${nearest.properties.latitude.toFixed(6)},${nearest.properties.longitude.toFixed(6)}`;
+                    this.dataset.lat = nearest.properties.latitude;
+                    this.dataset.lng = nearest.properties.longitude;
+                    updateInfoPanel(`<p>نزدیک‌ترین نمایندگی: ${nearest.properties.name} انتخاب شد.</p>`);
+                } else if (value && value.includes(',')) {
+                    const [lat, lng] = value.split(',');
+                    this.dataset.lat = lat;
+                    this.dataset.lng = lng;
+                }
+            });
+    
+            routeButton.addEventListener('click', function() {
+                if (!sourceInput.dataset.lat || !sourceInput.dataset.lng) {
+                    updateInfoPanel('<p class="text-danger">لطفاً موقعیت مبدأ را انتخاب کنید.</p>');
+                    return;
+                }
+                if (!destinationInput.dataset.lat || !destinationInput.dataset.lng) {
+                    updateInfoPanel('<p class="text-danger">لطفاً موقعیت مقصد را انتخاب کنید.</p>');
+                    return;
+                }
+    
+                var sourceLatLng = L.latLng(sourceInput.dataset.lat, sourceInput.dataset.lng);
+                var destLatLng = L.latLng(destinationInput.dataset.lat, destinationInput.dataset.lng);
+    
+                if (routingControl) {
+                    map.removeControl(routingControl);
+                }
+    
+                routingControl = L.Routing.control({
+                    waypoints: [
+                        sourceLatLng,
+                        destLatLng
+                    ],
+                    routeWhileDragging: true,
+                    show: false,
+                    createMarker: function() { return null; },
+                    lineOptions: {
+                        styles: [{ color: '#0078d7', weight: 5 }]
+                    }
+                }).on('routesfound', function(e) {
+                    var routes = e.routes[0];
+                    var distance = (routes.summary.totalDistance / 1000).toFixed(2);
+                    var time = Math.round(routes.summary.totalTime / 60);
+                    updateInfoPanel(`
+                        <p><i class="fas fa-road"></i> فاصله: ${distance} کیلومتر</p>
+                        <p><i class="fas fa-clock"></i> زمان تقریبی: ${time} دقیقه</p>
+                    `);
+                }).addTo(map);
+                map.fitBounds([sourceLatLng, destLatLng]);
+            });
+    
+            clearRouteButton.addEventListener('click', function() {
+                clearRouting();
+            });
+    
+            // Edit and Delete Marker Functionality
+            const editDeleteToggle = document.getElementById('editDeleteToggle');
+            const editMarkerBtn = document.getElementById('editMarkerBtn');
+            const deleteMarkerBtn = document.getElementById('deleteMarkerBtn');
+    
+            editMarkerBtn.addEventListener('click', function() {
+                if (selectedMarker) {
+                    selectedMarker.dragging.enable();
+                    updateInfoPanel('<p>نقطه در حال ویرایش است. موقعیت را تغییر دهید و ذخیره کنید.</p>');
+                    selectedMarker.on('dragend', function(e) {
+                        updateInfoPanel(`<p>موقعیت جدید: (${e.target.getLatLng().lat.toFixed(6)}, ${e.target.getLatLng().lng.toFixed(6)})</p>`);
+                        selectedMarker.dragging.disable();
+                    });
+                }
+            });
+    
+            deleteMarkerBtn.addEventListener('click', function() {
+                if (selectedMarker) {
+                    map.removeLayer(selectedMarker);
+                    selectedMarker = null;
+                    editDeleteToggle.style.display = 'none';
+                    updateInfoPanel('<p>نقطه حذف شد.</p>');
+                }
+            });
+    
+            // نمایش موقعیت فروشنده از آگهی‌ها
+            document.querySelectorAll('.show-location').forEach(button => {
+                button.addEventListener('click', function() {
+                    const userId = this.getAttribute('data-user-id');
+                    fetch(`/get-user-location/${userId}/`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.location) {
+                                const [lng, lat] = data.location;
+                                map.flyTo([lat, lng], 15, { animate: true, duration: 1.5 });
+                                L.marker([lat, lng], {
+                                    icon: L.divIcon({
+                                        className: 'my-custom-icon',
+                                        html: `<div style="background-color: blue; width: 15px; height: 15px; border-radius: 50%;"></div>`,
+                                        iconSize: [15, 15]
+                                    })
+                                }).addTo(map).bindPopup(`موقعیت ${data.username}`).openPopup();
+                            } else {
+                                alert('موقعیت این کاربر ثبت نشده است.');
+                            }
+                        })
+                        .catch(error => console.error('خطا در دریافت موقعیت:', error));
+                });
+            });
+    
+            // مسیریابی به موقعیت فروشنده
+            document.querySelectorAll('.route-to-seller').forEach(button => {
+                button.addEventListener('click', function() {
+                    const userId = this.getAttribute('data-user-id');
+                    if (!userLocationMarker) {
+                        alert('لطفاً ابتدا موقعیت خود را روی نقشه انتخاب کنید.');
+                        return;
+                    }
+    
+                    fetch(`/get-user-location/${userId}/`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.location) {
+                                const [destLng, destLat] = data.location;
+                                const sourceLatLng = userLocation;
+                                const destLatLng = L.latLng(destLat, destLng);
+    
+                                if (routingControl) {
+                                    map.removeControl(routingControl);
+                                }
+    
+                                routingControl = L.Routing.control({
+                                    waypoints: [sourceLatLng, destLatLng],
+                                    routeWhileDragging: true,
+                                    show: false,
+                                    createMarker: function() { return null; },
+                                    lineOptions: {
+                                        styles: [{ color: '#0078d7', weight: 5 }]
+                                    }
+                                }).on('routesfound', function(e) {
+                                    var routes = e.routes[0];
+                                    var distance = (routes.summary.totalDistance / 1000).toFixed(2);
+                                    var time = Math.round(routes.summary.totalTime / 60);
+                                    updateInfoPanel(`
+                                        <p><i class="fas fa-road"></i> فاصله: ${distance} کیلومتر</p>
+                                        <p><i class="fas fa-clock"></i> زمان تقریبی: ${time} دقیقه</p>
+                                    `);
+                                }).addTo(map);
+                                map.fitBounds([sourceLatLng, destLatLng]);
+                            } else {
+                                alert('موقعیت این فروشنده ثبت نشده است.');
+                            }
+                        })
+                        .catch(error => console.error('خطا در دریافت موقعیت برای مسیریابی:', error));
+                });
+            });
+    
+            // Initial call to set up markers
+            updateMarkers();
+    
+            // Language toggle functionality
+            let isPersian = true;
+            const langToggle = document.getElementById('langToggle');
+            langToggle.addEventListener('click', function() {
+                isPersian = !isPersian;
+                if (isPersian) {
+                    document.documentElement.lang = 'fa';
+                    document.documentElement.dir = 'rtl';
+                    langToggle.innerHTML = '<i class="fas fa-toggle-on"></i> پارسی';
+                    document.querySelectorAll('.nav-link').forEach(link => {
+                        switch (link.getAttribute('href')) {
+                            case "{% url 'condition_analysis' %}": link.textContent = 'تحلیل داده ها'; break;
+                            case "{% url 'profile' %}": link.textContent = 'پروفایل'; break;
+                            case "{% url 'create_ad' %}": link.textContent = 'ایجاد آگهی'; break;
+                        }
+                    });
+                } else {
+                    document.documentElement.lang = 'en';
+                    document.documentElement.dir = 'ltr';
+                    langToggle.innerHTML = '<i class="fas fa-toggle-on"></i> English';
+                    document.querySelectorAll('.nav-link').forEach(link => {
+                        switch (link.getAttribute('href')) {
+                            case "{% url 'condition_analysis' %}": link.textContent = 'Data Analysis'; break;
+                            case "{% url 'profile' %}": link.textContent = 'Profile'; break;
+                            case "{% url 'create_ad' %}": link.textContent = 'Create Ad'; break;
+                        }
+                    });
+                }
+                new bootstrap.Collapse(document.getElementById('navbarNav'), { toggle: false });
+            });
+    
+            if (typeof Chart === 'undefined') {
+                console.error('Chart.js لود نشد! اینترنت رو چک کن.');
+            } else {
+                console.log('Chart.js لود شد.');
+    
+                fetch('/shop-count/')
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById('shopCount').textContent = `تعداد کل نمایشگاه‌ها: ${data.total_shops}`;
+                    })
+                    .catch(error => console.error('خطا در دریافت تعداد نمایشگاه‌ها:', error));
+    
+                fetch('/condition-chart-data/')
+                    .then(response => response.json())
+                    .then(data => {
+                        const labels = data.condition_data.map(item => item.condition);
+                        const counts = data.condition_data.map(item => Number(item.count));
+                        new Chart(document.getElementById('conditionChart').getContext('2d'), {
+                            type: 'bar',
+                            data: { labels: labels, datasets: [{ label: 'تعداد خودروها', data: counts, backgroundColor: labels.map(label => label === 'new' ? 'rgba(0, 0, 255, 0.8)' : 'rgba(255, 0, 0, 0.8)') }] },
+                            options: { scales: { y: { beginAtZero: true, title: { text: 'تعداد' } }, x: { title: { text: 'وضعیت' } } } }
+                        });
+                    })
+                    .catch(error => console.error('خطا در دریافت داده‌های وضعیت:', error));
+    
+                fetch('/shop-chart-data/')
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log('داده‌های نمایشگاه:', data);
+                        if (!data.shop_data || !Array.isArray(data.shop_data)) {
+                            console.error('داده‌های نمایشگاه مشکل داره:', data.shop_data);
+                            return;
+                        }
+                        const labels = data.shop_data.map(item => item.shop__name || 'نامشخص');
+                        const counts = data.shop_data.map(item => Number(item.count));
+                        console.log('لیبل‌ها:', labels, 'تعدادها:', counts);
+    
+                        const shopCtx = document.getElementById('shopChart');
+                        if (shopCtx && shopCtx.getContext) {
+                            new Chart(shopCtx.getContext('2d'), {
+                                type: 'pie',
+                                data: { labels: labels, datasets: [{ label: 'تعداد خودروها', data: counts, backgroundColor: ['rgba(255, 99, 132, 0.6)', 'rgba(54, 162, 235, 0.6)', 'rgba(255, 206, 86, 0.6)', 'rgba(75, 192, 192, 0.6)', 'rgba(153, 102, 255, 0.6)'] }] },
+                                options: { plugins: { legend: { display: true, position: 'top' } } }
+                            });
+                        } else {
+                            console.error('عنصر shopChart پیدا نشد!');
+                        }
+    
+                        const itemsPerPage = 10;
+                        const tbody = document.getElementById('shopTableBody');
+                        const pagination = document.getElementById('pagination');
+    
+                        function displayPage(page) {
+                            tbody.innerHTML = '';
+                            const start = (page - 1) * itemsPerPage;
+                            const end = start + itemsPerPage;
+                            const paginatedData = data.shop_data.slice(start, end);
+    
+                            paginatedData.forEach(item => {
+                                const row = document.createElement('tr');
+                                row.innerHTML = `
+                                    <td>${item.shop__name || 'نامشخص'}</td>
+                                    <td>${item.count}</td>
+                                    <td><a href="/map/?lat=${shops.find(s => s.name === item.shop__name)?.latitude}&lng=${shops.find(s => s.name === item.shop__name)?.longitude}" class="btn btn-info btn-sm">نمایش روی نقشه</a></td>
+                                    <td><a href="/shop-vehicle-details/${item.shop_id}/" class="btn btn-primary btn-sm">جزئیات</a></td>
+                                `;
+                                tbody.appendChild(row);
+                            });
+                        }
+    
+                        function setupPagination() {
+                            pagination.innerHTML = '';
+                            const pageCount = Math.ceil(data.shop_data.length / itemsPerPage);
+                            for (let i = 1; i <= pageCount; i++) {
+                                const li = document.createElement('li');
+                                li.className = 'page-item' + (i === 1 ? ' active' : '');
+                                li.innerHTML = `<a class="page-link" href="#">${i}</a>`;
+                                li.addEventListener('click', (e) => {
+                                    e.preventDefault();
+                                    document.querySelectorAll('.page-item').forEach(item => item.classList.remove('active'));
+                                    li.classList.add('active');
+                                    displayPage(i);
+                                });
+                                pagination.appendChild(li);
+                            }
+                        }
+    
+                        displayPage(1);
+                        setupPagination();
+                    })
+                    .catch(error => console.error('خطا در دریافت داده‌های نمایشگاه:', error));
+    
+                fetch('/shop-avg-price-data/')
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log('داده‌های میانگین قیمت:', data);
+                        if (!data.avg_price_data || !Array.isArray(data.avg_price_data)) {
+                            console.error('داده‌های میانگین قیمت مشکل داره:', data.avg_price_data);
+                            return;
+                        }
+                        const labels = data.avg_price_data.map(item => item.shop__name || 'نامشخص');
+                        const avgPrices = data.avg_price_data.map(item => Number(item.avg_price));
+                        console.log('لیبل‌ها:', labels, 'میانگین قیمت‌ها:', avgPrices);
+    
+                        const avgPriceCtx = document.getElementById('avgPriceChart');
+                        if (avgPriceCtx && avgPriceCtx.getContext) {
+                            new Chart(avgPriceCtx.getContext('2d'), {
+                                type: 'bar',
+                                data: { labels: labels, datasets: [{ label: 'میانگین قیمت (تومان)', data: avgPrices, backgroundColor: 'rgba(0, 0, 255, 0.6)' }] },
+                                options: { scales: { y: { beginAtZero: true, title: { text: 'میانگین قیمت (تومان)' } }, x: { title: { text: 'نمایشگاه‌ها' } } }, plugins: { legend: { display: true } } }
+                            });
+                        } else {
+                            console.error('عنصر avgPriceChart پیدا نشد!');
+                        }
+                    })
+                    .catch(error => console.error('خطا در دریافت داده‌های میانگین قیمت:', error));
+            }
+        </script>
+    
+     
+    
+        
+    </body>
+</html>

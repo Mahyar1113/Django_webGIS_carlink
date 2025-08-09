@@ -1,0 +1,184 @@
+{% load static %}
+
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<title>Solid State by HTML5 UP</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		<link rel="stylesheet" href="{% static 'solid-state/assets/css/main.css' %}" />
+		<noscript><link rel="stylesheet" href="{% static 'solid-state/assets/css/noscript.css' %}" /></noscript>
+		<link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet" />
+		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+		<script src="https://cdn.jsdelivr.net/npm/typed.js@2.0.12"></script>
+	</head>
+	<body class="is-preload">
+
+		<!-- Page Wrapper -->
+			<div id="page-wrapper">
+
+				<!-- Header -->
+					<header id="header" class="alt">
+						<h1><a href="{% url 'login' %}">Solid State</a></h1>
+						<nav>
+							<a href="#menu">Menu</a>
+						</nav>
+					</header>
+
+				<!-- Menu -->
+					<nav id="menu">
+						<div class="inner">
+							<h2>Menu</h2>
+							<ul class="links">
+								<li><a href="{% url 'test_template' %}">خانه</a></li>
+								<li><a href="{% url 'login' %}">ورود/ثبت نام</a></li>
+								<li><a href="{% url 'logout' %}">خروج</a></li>
+							</ul>
+							<a href="#" class="close">Close</a>
+						</div>
+					</nav>
+
+				<!-- Banner -->
+				<section id="banner">
+					<div class="inner">
+						<div class="logo"><span class="icon fa-gem"></span></div>
+						<h2>WEBGIS CarLink</h2>
+						<p>Another free + fully responsive site template by <a href="http://html5up.net">HTML5 UP</a></p>
+					</div>
+				</section>
+
+				<!-- Wrapper -->
+					<section id="wrapper">
+						<!-- One -->
+						<section id="one" class="wrapper spotlight style1" >
+							<div class="inner">
+								<a href="#" class="image"><img src="{% static 'solid-state/images/maps.gif' %}" alt="" /></a>
+								<div class="content">
+									<h2 class="major">دسترسی آسان به مکان‌ها</h2>
+									<p>با استفاده از نقشه، به‌راحتی می‌توانید مکان آگهی‌های مختلف را مشاهده و مقایسه کنید.</p>
+									<a href="#" class="special">اطلاعات بیشتر</a>
+								</div>
+							</div>
+						</section>
+
+						<!-- Two -->
+						<section id="two" class="wrapper alt spotlight style2" >
+							<div class="inner">
+								<a href="#" class="image"><img src="{% static 'solid-state/images/advertising.gif' %}" alt="" /></a>
+								<div class="content">
+									<h2 class="major">ثبت رایگان آگهی</h2>
+									<p>ثبت آگهی‌های شما با موقعیت دقیق روی نقشه، کاملاً رایگان و در چند قدم ساده.</p>
+									<a href="#" class="special">بیشتر بدانید</a>
+								</div>
+							</div>
+						</section>
+
+						<!-- Three -->
+						<section id="three" class="wrapper spotlight style3" >
+							<div class="inner">
+								<a href="#" class="image"><img src="{% static 'solid-state/images/security.gif' %}" alt="" /></a>
+								<div class="content">
+									<h2 class="major">امنیت و کنترل دسترسی</h2>
+									<p>برای مشاهده یا ثبت آگهی، ابتدا ثبت‌نام و ورود به حساب کاربری الزامی است.</p>
+									<a href="#" class="special">اطلاعات بیشتر</a>
+								</div>
+							</div>
+						</section>
+
+						
+
+						
+						<section id="five" class="wrapper alt style1">
+							<div class="inner" data-aos="fade-up">
+								<h2 class="major">امکانات بیشتر</h2>
+								<p>ما امکانات متنوعی برای بهبود تجربه کاربری شما ارائه می‌دهیم. از جستجوی هوشمند گرفته تا فیلتر کردن آگهی‌ها بر اساس موقعیت مکانی.</p>
+								<section class="features">
+									<article data-aos="flip-left">
+										<a href="#" class="image"><img src="{% static 'solid-state/images/filter.gif' %}" alt="" /></a>
+										<h3 class="major">فیلتر هوشمند</h3>
+										<p>نمایش آگهی‌ها بر اساس نوع، موقعیت و تاریخ انتشار.</p>
+										<a href="#" class="special">بیشتر بدانید</a>
+									</article>
+									<article data-aos="flip-right">
+										<a href="#" class="image"><img src="{% static 'solid-state/images/mobile-app-settings.gif' %}" alt="" /></a>
+										<h3 class="major">محیط کاربرپسند</h3>
+										<p>رابط کاربری ساده و بهینه برای استفاده در موبایل و دسکتاپ.</p>
+										<a href="#" class="special">اطلاعات بیشتر</a>
+									</article>
+									<article data-aos="flip-left">
+										<a href="#" class="image"><img src="{% static 'solid-state/images/backend.gif' %}" alt="" /></a>
+										<h3 class="major">بروزرسانی آسان</h3>
+										<p>ویرایش یا حذف آگهی‌های ثبت‌شده در هر زمان ممکن است.</p>
+										<a href="#" class="special">نحوه استفاده</a>
+									</article>
+									<article data-aos="flip-right">
+										<a href="#" class="image"><img src="{% static 'solid-state/images/helpdesk.gif' %}" alt="" /></a>
+										<h3 class="major">پشتیبانی سریع</h3>
+										<p>در صورت بروز مشکل، تیم پشتیبانی در کنار شماست.</p>
+										<a href="#" class="special">تماس با ما</a>
+									</article>
+								</section>
+								<ul class="actions">
+									<li><a href="#" class="button">مشاهده همه امکانات</a></li>
+								</ul>
+							</div>
+						</section>
+					</section>
+
+				<!-- Footer -->
+					<section id="footer">
+						<div class="inner">
+							<h2 class="major">تماس با ما</h2>
+							<p>در صورت نیاز به راهنمایی یا ارسال پیشنهاد، می‌توانید از طریق فرم زیر با ما در ارتباط باشید.</p>
+							<form method="post" action="#">
+								<div class="fields">
+									<div class="field">
+										<label for="name">نام</label>
+										<input type="text" name="name" id="name" />
+									</div>
+									<div class="field">
+										<label for="email">ایمیل</label>
+										<input type="email" name="email" id="email" />
+									</div>
+									<div class="field">
+										<label for="message">پیام</label>
+										<textarea name="message" id="message" rows="4"></textarea>
+									</div>
+								</div>
+								<ul class="actions">
+									<li><input type="submit" value="ارسال پیام" /></li>
+								</ul>
+							</form>
+							<ul class="contact">
+								<li class="icon solid fa-home">تهران، ایران</li>
+								<li class="icon solid fa-phone">۰۲۱-۱۲۳۴۵۶۷۸</li>
+								<li class="icon solid fa-envelope"><a href="#">info@example.com</a></li>
+							</ul>
+							<ul class="copyright">
+								<li>&copy; سامانه آگهی. تمامی حقوق محفوظ است.</li><li>طراحی: <a href="http://html5up.net">HTML5 UP</a></li>
+							</ul>
+						</div>
+					</section>
+			</div>
+
+		<!-- Scripts -->
+		<script src="{% static 'solid-state/assets/js/jquery.min.js' %}"></script>
+		<script src="{% static 'solid-state/assets/js/jquery.scrollex.min.js' %}"></script>
+		<script src="{% static 'solid-state/assets/js/browser.min.js' %}"></script>
+		<script src="{% static 'solid-state/assets/js/breakpoints.min.js' %}"></script>
+		<script src="{% static 'solid-state/assets/js/util.js' %}"></script>
+		<script src="{% static 'solid-state/assets/js/main.js' %}"></script>
+		<script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+		<script>
+			AOS.init();
+		</script>
+		<script>
+			var typed = new Typed("#typed-text", {
+				strings: ["سامانه آگهی و نقشه", "با قابلیت فیلتر هوشمند", "رابط کاربری ساده و سریع"],
+				typeSpeed: 70,
+				backSpeed: 40,
+				loop: true
+			});
+		</script>
+	</body>
+</html>

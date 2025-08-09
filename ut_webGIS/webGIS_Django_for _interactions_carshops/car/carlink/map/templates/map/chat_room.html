@@ -1,0 +1,78 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+    <div class="container mt-4">
+        <div class="row">
+            <!-- چت‌باکس سمت چپ -->
+            <div class="col-md-8">
+                <h1 class="text-center mb-4">اتاق چت</h1>
+                {% if chat_request %}
+                    <p>چت با {{ chat_request.sender.username }} برای {{ chat_request.shop.name|default:'بدون نمایندگی' }}</p>
+                    <div id="chat-container" style="max-height: 400px; overflow-y: auto; border: 1px solid #ccc; padding: 10px;">
+                        <h3>تاریخچه چت:</h3>
+                        {% if chat_request.message or chat_request.messages.exists %}
+                            {% if chat_request.message %}
+                                <p><strong>{{ chat_request.sender.username }} (اولیه):</strong> {{ chat_request.message }} ({{ chat_request.created_at|date:"Y-m-d H:i" }})</p>
+                            {% endif %}
+                            {% for message in chat_request.messages.all %}
+                                <p><strong>{{ message.sender.username }}:</strong> {{ message.message }} ({{ message.created_at|date:"Y-m-d H:i" }})</p>
+                            {% endfor %}
+                        {% else %}
+                            <p>پیامی وجود ندارد.</p>
+                        {% endif %}
+                        <!-- دیباگ -->
+                        <p style="color: red;">دیباگ: صفحه با درخواست ID {{ chat_request.id }}, تعداد پیام‌ها: {{ chat_request.messages.count }}</p>
+                    </div>
+                    <form method="post" id="replyForm">
+                        {% csrf_token %}
+                        <textarea name="reply_message" class="form-control mt-3" placeholder="پاسخ خود را بنویسید" required></textarea>
+                        <button type="submit" class="btn btn-primary mt-2">ارسال</button>
+                    </form>
+                    <a href="/chat-room/{{ chat_request.id }}/" class="btn btn-secondary mt-2">رفرش</a>
+                {% else %}
+                    <p>لطفاً یک درخواست چت را انتخاب کنید.</p>
+                {% endif %}
+            </div>
+            <!-- لیست درخواست‌ها برای فروشنده -->
+            <div class="col-md-4">
+                <h3>درخواست‌های چت:</h3>
+                <ul class="list-group">
+                    {% for request in received_requests %}
+                        <li class="list-group-item">
+                            <a href="/chat-room/{{ request.id }}/" class="btn btn-info">{{ request.sender.username }}</a>
+                            {% if not request.is_accepted %}
+                                <form method="post" action="{% url 'accept_chat_request' request.id %}" style="display:inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-success btn-sm">پذیرش</button>
+                                </form>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.getElementById('replyForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            console.log('دیباگ: داده‌های فرم پاسخ:', Object.fromEntries(formData));
+            fetch('/chat-room/{{ chat_request.id }}/reply/', {
+                method: 'POST',
+                body: formData,
+                headers: {'X-CSRFToken': '{{ csrf_token }}'}
+            }).then(response => {
+                console.log('دیباگ: وضعیت پاسخ سرور:', response.status);
+                return response.json();
+            }).then(data => {
+                console.log('دیباگ: داده‌های JSON:', data);
+                if (data.status === 'success') {
+                    window.location.href = '/chat-room/{{ chat_request.id }}/?refresh=true'; // ریدایرکت برای به‌روز شدن
+                } else {
+                    alert('خطا: ' + (data.error || 'مشکل ناشناخته'));
+                }
+            }).catch(error => {
+                console.error('دیباگ: خطا در فچ:', error);
+            });
+        });
+    </script>
+{% endblock %}

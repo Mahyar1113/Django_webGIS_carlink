@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>نقشه OpenLayers</title>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="libs/ol.css">
+  <style>
+    #map { width: 100%; height: 400px; }
+    #toc { position: absolute; top: 10px; right: 10px; background: white; padding: 10px; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div id="toc">
+    <label><input type="checkbox" id="layerOSM" checked> لایه OSM</label><br>
+    <label><input type="checkbox" id="layer1" checked> لایه نقطه‌ای</label><br>
+    <label><input type="checkbox" id="layer2" checked> لایه جاده‌ها</label><br>
+  </div>
+  <button id="saveButton">ذخیره تصویر</button>
+
+  <script src="libs/ol.js"></script>
+  <script>
+    // // Create the OpenStreetMap base layer
+    var osmLayer = new ol.layer.Tile({
+      source: new ol.source.OSM()
+    });
+    //Initialize the map
+    var map = new ol.Map({
+      target: 'map',
+      layers: [
+        osmLayer
+      ],
+      view: new ol.View({
+        center: [0, 0],
+        zoom: 2
+      })
+    });
+
+    //  Add WMS point layer from GeoServer
+    var wmsLayer = new ol.layer.Image({
+      source: new ol.source.ImageWMS({
+        url: 'http://localhost:8080/geoserver/wms',
+        params: {'LAYERS': 'sf:bugsites'},
+        ratio: 1,
+        serverType: 'geoserver'
+      })
+    });
+    map.addLayer(wmsLayer);
+
+    // Add WMS roads layer from GeoServer
+    var roadsLayer = new ol.layer.Image({
+      source: new ol.source.ImageWMS({
+        url: 'http://localhost:8080/geoserver/wms',
+        params: {'LAYERS': 'sf:roads'},
+        ratio: 1,
+        serverType: 'geoserver'
+      })
+    });
+    map.addLayer(roadsLayer);
+
+    // Layer visibility controls)(TOC)
+    document.getElementById('layerOSM').addEventListener('change', function() {
+      osmLayer.setVisible(this.checked);
+    });
+
+    document.getElementById('layer1').addEventListener('change', function() {
+      wmsLayer.setVisible(this.checked);
+    });
+
+    document.getElementById('layer2').addEventListener('change', function() {
+      roadsLayer.setVisible(this.checked);
+    });
+
+    // Vector source for editable point layer
+    var vectorSource = new ol.source.Vector({
+      format: new ol.format.GeoJSON(),
+      url: function(extent) {
+        return 'http://localhost:8080/geoserver/wfs?service=WFS&' +
+          'version=1.1.0&request=GetFeature&typename=sf:bugsites&' +
+          'outputFormat=application/json&srsname=EPSG:3857&' +
+          'bbox=' + extent.join(',') + ',EPSG:3857';
+      },
+      strategy: ol.loadingstrategy.bbox
+    });
+    // Create vector layer with custom style
+
+    var vectorLayer = new ol.layer.Vector({
+      source: vectorSource,
+      style: function(feature) {
+        return new ol.style.Style({
+          image: new ol.style.Circle({
+            radius: 5,
+            fill: new ol.style.Fill({color: 'red'})
+          }),
+          text: new ol.style.Text({
+            text: feature.get('name') || 'Point',
+            font: '12px Calibri,sans-serif',
+            fill: new ol.style.Fill({color: '#000'}),
+            stroke: new ol.style.Stroke({color: '#fff', width: 2}),
+            offsetY: -15
+          })
+        });
+      }
+    });
+    map.addLayer(vectorLayer);
+
+    //  // Fit the map to combined extent of both layers
+    map.once('rendercomplete', function() {
+      Promise.all([
+        fetch('http://localhost:8080/geoserver/wfs?service=WFS&version=1.1.0&request=GetFeature&typename=sf:bugsites&outputFormat=application/json'),
+        fetch('http://localhost:8080/geoserver/wfs?service=WFS&version=1.1.0&request=GetFeature&typename=sf:roads&outputFormat=application/json')
+      ]).then(responses => Promise.all(responses.map(r => r.json())))
+        .then(([bugsData, roadsData]) => {
+          console.log('Bugsites Response:', bugsData);
+          console.log('Roads Response:', roadsData);
+          var combinedExtent = ol.extent.createEmpty();
+
+          //  Calculate extent for bugsites
+          if (bugsData.features && bugsData.features.length > 0) {
+            bugsData.features.forEach(function(feature) {
+              if (feature.geometry && feature.geometry.coordinates) {
+                var coords = feature.geometry.coordinates;
+                var transformedCoords = ol.proj.transform(coords, 'EPSG:26713', 'EPSG:3857');
+                ol.extent.extend(combinedExtent, transformedCoords.concat(transformedCoords));
+              }
+            });
+          }
+
+          // Calculate extent for roads
+          if (roadsData.features && roadsData.features.length > 0) {
+            roadsData.features.forEach(function(feature) {
+              if (feature.geometry && feature.geometry.coordinates) {
+                var coords = feature.geometry.coordinates.flat(Infinity);
+                coords.forEach(coord => {
+                  var transformedCoords = ol.proj.transform(coord, 'EPSG:26713', 'EPSG:3857');
+                  ol.extent.extend(combinedExtent, transformedCoords.concat(transformedCoords));
+                });
+              }
+            });
+          }
+
+          if (!ol.extent.isEmpty(combinedExtent)) {
+            map.getView().fit(combinedExtent, {
+              padding: [50, 50, 50, 50],
+              minZoom: 10,
+              maxZoom: 17,
+              duration: 1000
+            });
+          } else {
+            console.warn('No valid extent calculated');
+            var minCoords = ol.proj.transform([590232, 4915039], 'EPSG:26713', 'EPSG:3857');
+            var maxCoords = ol.proj.transform([608471, 4915733], 'EPSG:26713', 'EPSG:3857');
+            var manualExtent = [minCoords[0], minCoords[1], maxCoords[0], maxCoords[1]];
+            map.getView().fit(manualExtent, {
+              padding: [50, 50, 50, 50],
+              minZoom: 10,
+              maxZoom: 17,
+              duration: 1000
+            });
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching features:', error);
+          var minCoords = ol.proj.transform([590232, 4915039], 'EPSG:26713', 'EPSG:3857');
+          var maxCoords = ol.proj.transform([608471, 4915733], 'EPSG:26713', 'EPSG:3857');
+          var manualExtent = [minCoords[0], minCoords[1], maxCoords[0], maxCoords[1]];
+          map.getView().fit(manualExtent, {
+            padding: [50, 50, 50, 50],
+            minZoom: 10,
+            maxZoom: 17,
+            duration: 1000
+          });
+        });
+    });
+      // Add drawing interaction for points
+    var draw = new ol.interaction.Draw({
+      source: vectorSource,
+      type: 'Point'
+    });
+    map.addInteraction(draw);
+
+    // Prompt for point name after drawing
+
+    draw.on('drawend', function(event) {
+      var feature = event.feature;
+      var name = prompt('نام نقطه را وارد کنید:');
+      if (name) {
+        feature.set('name', name);
+        vectorSource.addFeature(feature);
+      }
+    });
+   // Add modify interaction for vector features
+    var modify = new ol.interaction.Modify({
+      source: vectorSource
+    });
+    map.addInteraction(modify);
+
+    var translate = new ol.interaction.Translate({
+      features: new ol.Collection(vectorSource.getFeatures())
+    });
+    map.addInteraction(translate);
+
+    //  // Save visible WMS layers as an image
+    function saveAsImage() {
+      var size = map.getSize();
+      var extent = map.getView().calculateExtent(size);
+
+      var layersToExport = [];
+      if (wmsLayer.getVisible()) layersToExport.push('sf:bugsites');
+      if (roadsLayer.getVisible()) layersToExport.push('sf:roads');
+
+      var wmsUrl = 'http://localhost:8080/geoserver/wms?' +
+        'SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&' +
+        'FORMAT=image/png&' +
+        'TRANSPARENT=true&' +
+        'WIDTH=' + size[0] + '&' +
+        'HEIGHT=' + size[1] + '&' +
+        'LAYERS=' + layersToExport.join(',') + '&' +
+        'SRS=EPSG:3857&' +
+        'BBOX=' + extent.join(',');
+
+      var link = document.createElement('a');
+      link.href = wmsUrl;
+      link.download = 'map.png';
+      link.click();
+    }
+
+    document.getElementById('saveButton').addEventListener('click', saveAsImage);
+  </script>
+</body>
+</html>

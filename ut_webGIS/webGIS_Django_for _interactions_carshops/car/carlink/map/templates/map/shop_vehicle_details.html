@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>جزئیات خودروها - {{ shop_name }}</title>
+    {% load static %}
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+    <style>
+        .vehicle-list {
+            padding: 20px;
+            max-width: 800px;
+            margin: auto;
+            margin-top: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <div class="vehicle-list">
+        <h2>جزئیات خودروها در نمایشگاه: {{ shop_name }}</h2>
+        {% if vehicles %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>نام خودرو</th>
+                        <th>قیمت (تومان)</th>
+                        <th>سال ساخت</th>
+                        <th>وضعیت</th>
+                        <th>نوع سوخت</th>
+                        <th>کارکرد (کیلومتر)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for vehicle in vehicles %}
+                        <tr>
+                            <td>{{ vehicle.name }}</td>
+                            <td>{{ vehicle.base_price }}</td>
+                            <td>{{ vehicle.year }}</td>
+                            <td>{{ vehicle.condition }}</td>
+                            <td>{{ vehicle.fuel_type }}</td>
+                            <td>{{ vehicle.mileage }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>خودرویی برای این نمایشگاه ثبت نشده است.</p>
+        {% endif %}
+    </div>
+</body>
+</html>

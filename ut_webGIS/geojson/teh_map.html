@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>نقشه استان‌های ایران با تولتیپ حرفه‌ای</title>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+  <!-- فونت آیکون‌ها -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    /* استایل‌های پایه */
+    body {
+      font-family: 'Tahoma', sans-serif;
+      margin: 0;
+      background: #f5f7fa;
+    }
+    
+    #map {
+      height: 100vh;
+      width: 100%;
+      background: #e0e6ed;
+    }
+    
+    /* پنل انتخاب فایل */
+    .control-panel {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 15px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+      backdrop-filter: blur(5px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    #fileInput {
+      display: none;
+    }
+    
+    .upload-btn {
+      display: inline-block;
+      padding: 10px 20px;
+      background: #3498db;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-size: 14px;
+    }
+    
+    .upload-btn:hover {
+      background: #2980b9;
+      transform: translateY(-2px);
+    }
+    
+    /* تولتیپ شناور حرفه‌ای */
+    .floating-tooltip {
+      position: absolute;
+      padding: 0;
+      background: rgb(24, 2, 2);
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      pointer-events: none;
+      opacity: 0;
+      transform: translate(-50%, -120%);
+      transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+      z-index: 1001;
+      width: 280px;
+      overflow: hidden;
+    }
+    
+    .floating-tooltip.active {
+      opacity: 1;
+      transform: translate(-50%, -100%);
+    }
+    
+    .tooltip-header {
+      background: linear-gradient(135deg, #3498db 0%, #2c3e50 100%);
+      color: white;
+      padding: 15px;
+      position: relative;
+    }
+    
+    .tooltip-header h3 {
+      margin: 0;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .tooltip-badge {
+      background: rgba(255, 255, 255, 0.2);
+      padding: 3px 8px;
+      border-radius: 20px;
+      font-size: 12px;
+      margin-left: auto;
+    }
+    
+    .tooltip-body {
+      padding: 15px;
+      background: white;
+    }
+    
+    .info-row {
+      display: flex;
+      margin-bottom: 10px;
+      align-items: center;
+    }
+    
+    .info-icon {
+      width: 24px;
+      height: 24px;
+      background: #f1f5f9;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-left: 10px;
+      color: #3498db;
+    }
+    
+    .info-label {
+      font-weight: bold;
+      color: #64748b;
+      width: 100px;
+      font-size: 13px;
+    }
+    
+    .info-value {
+      flex: 1;
+      color: #1e293b;
+      font-size: 14px;
+    }
+    
+    /* انیمیشن‌های ویژه */
+    @keyframes regionPulse {
+      0% { filter: brightness(1); stroke-width: 2px; }
+      50% { filter: brightness(1.1); stroke-width: 3px; }
+      100% { filter: brightness(1); stroke-width: 2px; }
+    }
+    
+    .highlighted-region {
+      animation: regionPulse 1.5s infinite;
+      stroke: #7bda1c !important;
+    }
+    
+    /* افکت شیشه‌ای برای نقشه */
+    .glass-effect {
+      backdrop-filter: blur(3px);
+      background: rgba(64, 235, 12, 0.2) !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="control-panel">
+    <label for="fileInput" class="upload-btn">
+      <i class="fas fa-upload"></i> انتخاب فایل GeoJSON
+    </label>
+    <input type="file" id="fileInput" accept=".geojson">
+  </div>
+  <div id="map" class="glass-effect"></div>
+  <div id="floatingTooltip" class="floating-tooltip"></div>
+
+  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+  <script>
+    // تنظیمات نقشه
+    const map = L.map('map').setView([32.4279, 53.6880], 5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    const floatingTooltip = document.getElementById('floatingTooltip');
+    let geojsonLayer = null;
+    let currentHighlight = null;
+
+    // تابع ایجاد محتوای تولتیپ
+    function createTooltipContent(feature) {
+      const props = feature.properties;
+      return `
+        <div class="tooltip-header">
+          <h3>
+            <i class="fas fa-map-marked-alt"></i>
+            ${props.shapeName || 'استان نامعلوم'}
+            <span class="tooltip-badge">${props.shapeType || 'ADM2'}</span>
+          </h3>
+        </div>
+        <div class="tooltip-body">
+          <div class="info-row">
+            <div class="info-label">کد شناسایی</div>
+            <div class="info-icon">
+              <i class="fas fa-fingerprint"></i>
+            </div>
+            <div class="info-value">${props.shapeID || '---'}</div>
+          </div>
+          <div class="info-row">
+            <div class="info-label">موقعیت نجومی</div>
+            <div class="info-icon">
+              <i class="fas fa-star"></i>
+            </div>
+            <div class="info-value">صورت فلکی جبار</div>
+          </div>
+          <div class="info-row">
+            <div class="info-label">وضعیت آب و هوا</div>
+            <div class="info-icon">
+              <i class="fas fa-cloud-sun"></i>
+            </div>
+            <div class="info-value">صاف - دید عالی</div>
+          </div>
+          <div class="info-row">
+            <div class="info-label">ارتفاع</div>
+            <div class="info-icon">
+              <i class="fas fa-mountain"></i>
+            </div>
+            <div class="info-value">${Math.round(Math.random() * 3000)} متر</div>
+          </div>
+        </div>
+      `;
+    }
+
+    // مدیریت حرکت موس
+    function updateTooltip(e) {
+      const mousePos = map.latLngToContainerPoint(e.latlng);
+      floatingTooltip.style.left = mousePos.x + 'px';
+      floatingTooltip.style.top = mousePos.y + 'px';
+      
+      // جلوگیری از لرزش تولتیپ
+      const feature = e.target.feature;
+      floatingTooltip.innerHTML = createTooltipContent(feature);
+      floatingTooltip.classList.add('active');
+    }
+
+    // انتخاب فایل
+    document.getElementById('fileInput').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const geojsonData = JSON.parse(e.target.result);
+          
+          if (geojsonLayer) {
+            map.removeLayer(geojsonLayer);
+          }
+
+          geojsonLayer = L.geoJSON(geojsonData, {
+            style: {
+              color: '#3498db',
+              weight: 2,
+              fillColor: '#3498db',
+              fillOpacity: 0.6,
+              dashArray: '0',
+              opacity: 1
+            },
+            onEachFeature: function(feature, layer) {
+              layer.on({
+                mousemove: function(e) {
+                  // هایلایت منطقه
+                  if (currentHighlight) {
+                    currentHighlight.setStyle({
+                      fillColor: '#3498db',
+                      fillOpacity: 0.6
+                    });
+                    currentHighlight.removeClass('highlighted-region');
+                  }
+                  
+                  e.target.setStyle({
+                    fillColor: '#e74c3c',
+                    fillOpacity: 0.8
+                  });
+                  e.target.addClass('highlighted-region');
+                  currentHighlight = e.target;
+                  
+                  updateTooltip(e);
+                },
+                mouseout: function(e) {
+                  e.target.setStyle({
+                    fillColor: '#3498db',
+                    fillOpacity: 0.6
+                  });
+                  e.target.removeClass('highlighted-region');
+                  floatingTooltip.classList.remove('active');
+                },
+                click: function(e) {
+                  map.fitBounds(e.target.getBounds(), { padding: [50, 50] });
+                }
+              });
+            }
+          }).addTo(map);
+
+          // اضافه کردن متدهای مدیریت کلاس
+          L.Path.prototype.addClass = function(className) {
+            this._path.classList.add(className);
+            return this;
+          };
+          
+          L.Path.prototype.removeClass = function(className) {
+            this._path.classList.remove(className);
+            return this;
+          };
+
+          map.fitBounds(geojsonLayer.getBounds());
+        } catch (error) {
+          console.error("خطا در بارگذاری فایل:", error);
+          alert("فایل GeoJSON نامعتبر است!");
+        }
+      };
+      reader.readAsText(file);
+    });
+  </script>
+</body>
+</html>

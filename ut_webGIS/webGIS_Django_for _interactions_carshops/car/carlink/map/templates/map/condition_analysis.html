@@ -1,0 +1,403 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WEBGIS CarLink</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- CSS برای condition-analysis -->
+    <link rel="stylesheet" href="{% static 'solid-state/assets/css/main.css' %}" id="main-css" />
+    <noscript><link rel="stylesheet" href="{% static 'solid-state/assets/css/noscript.css' %}" /></noscript>
+    <!-- CSS برای نقشه -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- CSS برای AOS -->
+    <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css" />
+    <!-- Chart.js برای چارت‌ها -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <header>
+        <h1>WEBGIS CarLink condition-analysis</h1>
+       
+        <hr>
+    </header>
+    
+
+    <!-- Scripts -->
+    <script src="{% static 'solid-state/assets/js/jquery.min.js' %}"></script>
+    <script src="{% static 'solid-state/assets/js/jquery.scrollex.min.js' %}"></script>
+    <script src="{% static 'solid-state/assets/js/browser.min.js' %}"></script>
+    <script src="{% static 'solid-state/assets/js/breakpoints.min.js' %}"></script>
+    <script src="{% static 'solid-state/assets/js/util.js' %}"></script>
+    <script src="{% static 'solid-state/assets/js/main.js' %}"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>
+        AOS.init();
+    </script>
+    <!-- مدیریت نقشه برای جلوگیری از مقداردهی چندباره -->
+    <script>
+        // اطمینان از اینکه نقشه فقط یک‌بار ساخته می‌شه
+        if (!window.mapInitialized) {
+            var map = L.map('mapid').setView([35.6892, 51.3890], 10); // مختصات تهران
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            }).addTo(map);
+            // اضافه کردن مارکرها از shops
+            var shops = {{ shops|safe }};
+            shops.forEach(function(shop) {
+                L.marker([shop.latitude, shop.longitude])
+                    .addTo(map)
+                    .bindPopup('<b>' + shop.name + '</b><br>' + shop.address);
+            });
+            window.mapInitialized = true;
+        }
+    </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <title>تحلیل وضعیت خودروها - CarLink</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="{% static 'solid-state/assets/css/main.css' %}" />
+    <noscript><link rel="stylesheet" href="{% static 'solid-state/assets/css/noscript.css' %}" /></noscript>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        canvas {
+            max-width: 100%;
+        }
+        #map {
+            height: 500px;
+            width: 100%;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+        }
+        .shop-count {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .dual-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2rem;
+        }
+        .dual-container > .table-wrapper {
+            flex: 1 1 60%;
+            overflow-x: auto;
+        }
+        .dual-container > #map {
+            flex: 1 1 35%;
+        }
+        table#shopTable {
+            font-size: 0.9em;
+            width: 100%;
+        }
+        ul.pagination {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            list-style: none;
+            padding: 0;
+            justify-content: center;
+        }
+        ul.pagination li {
+            display: inline-block;
+        }
+        ul.pagination .page-link {
+            padding: 5px 12px;
+            background: #090909;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        ul.pagination .active .page-link {
+            background: #0066cc;
+            color: white;
+        }
+    </style>
+</head>
+<body class="is-preload">
+<div id="page-wrapper">
+    <header id="header" class="alt">
+        <h1><a href="#">CarLink</a></h1>
+        
+    </header>
+    
+    <section id="banner">
+        <div class="inner">
+            <div class="logo"><span class="icon fa-gem"></span></div>
+            <h2>تحلیل وضعیت خودروها</h2>
+            
+        </div>
+    </section>
+    <section id="wrapper">
+        <div class="inner">
+            
+            <div class="shop-count" id="shopCount">در حال بارگذاری...</div>
+
+            <section class="features">
+                <article>
+                    <h3 class="major">نمودار وضعیت خودروها</h3>
+                    <canvas id="conditionChart"></canvas>
+                </article>
+                <article>
+                    <h3 class="major">نمودار خودروها بر اساس نمایشگاه</h3>
+                    <canvas id="shopChart"></canvas>
+                </article>
+                <article>
+                    <h3 class="major">نمودار میانگین قیمت</h3>
+                    <canvas id="avgPriceChart"></canvas>
+                </article>
+            </section>
+
+            <section class="dual-container">
+                <div class="table-wrapper">
+                    <h3 class="major">جدول خودروها</h3>
+                    <table id="shopTable">
+                        <thead>
+                            <tr>
+                                <th>نام نمایشگاه</th>
+                                <th>تعداد خودروها</th>
+                                <th>نمایش روی نقشه</th>
+                                <th>جزئیات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="shopTableBody"></tbody>
+                    </table>
+                    <ul class="pagination" id="pagination"></ul>
+                </div>
+                <div id="map"></div>
+            </section>
+        </div>
+    </section>
+    
+</div>
+<script src="{% static 'solid-state/assets/js/jquery.min.js' %}"></script>
+<script src="{% static 'solid-state/assets/js/jquery.scrollex.min.js' %}"></script>
+<script src="{% static 'solid-state/assets/js/browser.min.js' %}"></script>
+<script src="{% static 'solid-state/assets/js/breakpoints.min.js' %}"></script>
+<script src="{% static 'solid-state/assets/js/util.js' %}"></script>
+<script src="{% static 'solid-state/assets/js/main.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    if (typeof Chart === 'undefined') {
+        console.error('Chart.js لود نشد! اینترنت رو چک کن.');
+    } else {
+        console.log('Chart.js لود شد.');
+
+        // نقشه Leaflet
+        var map = L.map('map').setView([35.6892, 51.3890], 10); // مختصات پیش‌فرض تهران
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+        }).addTo(map);
+
+        // آیکون سفارشی برای مارکرها
+        var customIcon = L.icon({
+            iconUrl: '{% static "leaflet/images/marker-icon.png" %}', // مسیر استاتیک
+            iconSize: [25, 25], // اندازه آیکون
+            iconAnchor: [17, 35], // نقطه لنگر (نیمه پایین آیکون)
+            popupAnchor: [0, -35] // موقعیت پاپ‌آپ
+        });
+
+        // آرایه برای ذخیره مارکرها
+        var shopMarkers = [];
+
+        // تابع جابه‌جایی به مختصات
+        function flyTo(lat, lng) {
+            map.flyTo([lat, lng], 20);
+        }
+
+        // نمایش تعداد نمایشگاه‌ها
+        fetch('/shop-count/')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('shopCount').textContent = `تعداد کل نمایشگاه‌ها: ${data.total_shops}`;
+            })
+            .catch(error => console.error('خطا در دریافت تعداد نمایشگاه‌ها:', error));
+
+        // نمودار وضعیت خودروها
+        fetch('/condition-chart-data/')
+            .then(response => response.json())
+            .then(data => {
+                const labels = data.condition_data.map(item => item.condition);
+                const counts = data.condition_data.map(item => Number(item.count));
+                new Chart(document.getElementById('conditionChart').getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'تعداد خودروها',
+                            data: counts,
+                            backgroundColor: labels.map(label => label === 'new' ? 'rgba(0, 0, 255, 0.8)' : 'rgba(255, 0, 0, 0.8)')
+                        }]
+                    },
+                    options: {
+                        scales: {
+                            y: { beginAtZero: true, title: { text: 'تعداد' } },
+                            x: { title: { text: 'وضعیت' } }
+                        }
+                    }
+                });
+            })
+            .catch(error => console.error('خطا در دریافت داده‌های وضعیت:', error));
+
+        // نمودار نمایشگاه‌ها
+        fetch('/shop-chart-data/')
+            .then(response => response.json())
+            .then(data => {
+                console.log('داده‌های نمایشگاه:', data);
+                if (!data.shop_data || !Array.isArray(data.shop_data)) {
+                    console.error('داده‌های نمایشگاه مشکل داره:', data.shop_data);
+                    return;
+                }
+                const labels = data.shop_data.map(item => item.shop__name || 'نامشخص');
+                const counts = data.shop_data.map(item => Number(item.count));
+                console.log('لیبل‌ها:', labels, 'تعدادها:', counts, 'داده کامل:', JSON.stringify(data.shop_data, null, 2));
+
+                const shopCtx = document.getElementById('shopChart');
+                if (shopCtx && shopCtx.getContext) {
+                    new Chart(shopCtx.getContext('2d'), {
+                        type: 'pie',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'تعداد خودروها',
+                                data: counts,
+                                backgroundColor: [
+                                    'rgba(255, 99, 132, 0.6)', 'rgba(54, 162, 235, 0.6)',
+                                    'rgba(255, 206, 86, 0.6)', 'rgba(75, 192, 192, 0.6)',
+                                    'rgba(153, 102, 255, 0.6)'
+                                ]
+                            }]
+                        },
+                        options: {
+                            plugins: { legend: { display: true, position: 'top' } }
+                        }
+                    });
+                } else {
+                    console.error('عنصر shopChart پیدا نشد!');
+                }
+
+                // اضافه کردن مارکرها به نقشه
+                data.shop_data.forEach(item => {
+                    fetch(`/shop/${item.shop_id}/map-link/`)
+                        .then(response => response.json())
+                        .then(linkData => {
+                            const lat = linkData.map_link.match(/flyTo\(([\d.]+), ([\d.]+)\)/);
+                            if (lat && lat[1] && lat[2]) {
+                                const marker = L.marker([parseFloat(lat[1]), parseFloat(lat[2])], { icon: customIcon })
+                                    .bindPopup(`<b>${item.shop__name || 'نامشخص'}</b><br>تعداد خودروها: ${item.count}`)
+                                    .addTo(map);
+                                shopMarkers.push(marker);
+                            }
+                        })
+                        .catch(error => console.error('خطا در دریافت مختصات:', error));
+                });
+
+                // جدول با صفحه‌بندی و لینک‌ها
+                const itemsPerPage = 10;
+                const tbody = document.getElementById('shopTableBody');
+                const pagination = document.getElementById('pagination');
+
+                function displayPage(page) {
+                    tbody.innerHTML = '';
+                    const start = (page - 1) * itemsPerPage;
+                    const end = start + itemsPerPage;
+                    const paginatedData = data.shop_data.slice(start, end);
+
+                    paginatedData.forEach(item => {
+                        console.log('آیتم فعلی:', JSON.stringify(item, null, 2));
+                        fetch(`/shop/${item.shop_id}/map-link/`)  // لینک نقشه
+                            .then(response => response.json())
+                            .then(linkData => {
+                                const row = document.createElement('tr');
+                                row.innerHTML = `
+                                    <td>${item.shop__name || 'نامشخص'}</td>
+                                    <td>${item.count}</td>
+                                    <td><a href="${linkData.map_link}" class="btn btn-info btn-sm">نمایش روی نقشه</a></td>
+                                    <td><a href="/shop-vehicle-details/${item.shop_id}/" class="btn btn-primary btn-sm">جزئیات</a></td>
+                                `;
+                                tbody.appendChild(row);
+                            })
+                            .catch(error => console.error('خطا در دریافت لینک:', error));
+                    });
+                }
+
+                function setupPagination() {
+                    pagination.innerHTML = '';
+                    const pageCount = Math.ceil(data.shop_data.length / itemsPerPage);
+                    for (let i = 1; i <= pageCount; i++) {
+                        const li = document.createElement('li');
+                        li.className = 'page-item' + (i === 1 ? ' active' : '');
+                        li.innerHTML = `<a class="page-link" href="#">${i}</a>`;
+                        li.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            document.querySelectorAll('.page-item').forEach(item => item.classList.remove('active'));
+                            li.classList.add('active');
+                            displayPage(i);
+                        });
+                        pagination.appendChild(li);
+                    }
+                }
+
+                displayPage(1);
+                setupPagination();
+            })
+            .catch(error => console.error('خطا در دریافت داده‌های نمایشگاه:', error));
+
+        // نمودار میانگین قیمت نمایشگاه‌ها
+        fetch('/shop-avg-price-data/')
+            .then(response => response.json())
+            .then(data => {
+                console.log('داده‌های میانگین قیمت:', data);
+                if (!data.avg_price_data || !Array.isArray(data.avg_price_data)) {
+                    console.error('داده‌های میانگین قیمت مشکل داره:', data.avg_price_data);
+                    return;
+                }
+                const labels = data.avg_price_data.map(item => item.shop__name || 'نامشخص');
+                const avgPrices = data.avg_price_data.map(item => Number(item.avg_price));
+                console.log('لیبل‌ها:', labels, 'میانگین قیمت‌ها:', avgPrices);
+
+                const avgPriceCtx = document.getElementById('avgPriceChart');
+                if (avgPriceCtx && avgPriceCtx.getContext) {
+                    new Chart(avgPriceCtx.getContext('2d'), {
+                        type: 'bar',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'میانگین قیمت (تومان)',
+                                data: avgPrices,
+                                backgroundColor: 'rgba(0, 0, 255, 0.6)'
+                            }]
+                        },
+                        options: {
+                            scales: {
+                                y: { beginAtZero: true, title: { text: 'میانگین قیمت (تومان)' } },
+                                x: { title: { text: 'نمایشگاه‌ها' } }
+                            },
+                            plugins: { legend: { display: true } }
+                        }
+                    });
+                } else {
+                    console.error('عنصر avgPriceChart پیدا نشد!');
+                }
+            })
+            .catch(error => console.error('خطا در دریافت داده‌های میانگین قیمت:', error));
+     }
+</script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+

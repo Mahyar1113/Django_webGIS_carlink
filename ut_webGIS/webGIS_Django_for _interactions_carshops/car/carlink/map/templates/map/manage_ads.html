@@ -1,0 +1,70 @@
+{% extends "admin/base_site.html" %}
+{% load crispy_forms_tags %}
+{% block content %}
+    <div class="container mt-4">
+        <h1 class="text-center mb-4">مدیریت آگهی‌ها</h1>
+        <style>
+            .card-container {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 20px;
+            }
+            .card {
+                width: 300px;
+                border: none;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                border-radius: 8px;
+                text-align: center;
+                padding: 15px;
+            }
+            .card-title {
+                color: #007bff;
+                font-size: 1.25rem;
+            }
+            .card-text {
+                color: #6c757d;
+            }
+            .text-success {
+                color: #28a745;
+            }
+            .text-secondary {
+                color: #6c757d;
+            }
+            .btn {
+                margin: 5px;
+                padding: 5px 10px;
+            }
+            .alert-warning {
+                background-color: #fff3cd;
+                color: #856404;
+                border-color: #ffeeba;
+                padding: 10px;
+                border-radius: 5px;
+            }
+        </style>
+        {% if ads %}
+            <div class="card-container">
+                {% for ad in ads %}
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ ad.title }}</h5>
+                            <p class="card-text">کاربر: {{ ad.user.username }}</p>
+                            <p class="card-text">وضعیت: {{ ad.is_approved|yesno:"تأیید شده,در انتظار تأیید" }}</p>
+                            <form method="post" action="{% url 'manage_ads' %}" style="display:inline;">
+                                {% csrf_token %}
+                                <input type="hidden" name="ad_id" value="{{ ad.id }}">
+                                <button type="submit" name="action" value="approve" class="btn btn-success">تأیید</button>
+                                <button type="submit" name="action" value="reject" class="btn btn-danger">رد</button>
+                            </form>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="alert alert-warning text-center">
+                هیچ آگهی‌ای وجود ندارد.
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}

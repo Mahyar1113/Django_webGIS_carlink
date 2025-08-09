@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Leaflet Routing - انتخاب پروفایل</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
+  <style>
+    #map { height: 100vh; }
+    #controls {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: white;
+      padding: 8px;
+      border-radius: 5px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.3);
+      z-index: 1000;
+      font-family: sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <div id="controls">
+    <label>نوع مسیر:</label>
+    <select id="profile">
+      <option value="driving">🚗 ماشین</option>
+      <option value="cycling">🚴 دوچرخه</option>
+      <option value="walking">🚶 پیاده‌روی</option>
+    </select>
+  </div>
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+  <script>
+    var map = L.map('map').setView([35.6892, 51.3890], 13);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    var startMarker = null;
+    var endMarker = null;
+    var control = null;
+
+    // تابع مسیریابی
+    function createRoute(profile) {
+      if (control) map.removeControl(control);
+
+      control = L.Routing.control({
+        waypoints: [
+          startMarker.getLatLng(),
+          endMarker.getLatLng()
+        ],
+        router: L.Routing.osrmv1({
+          serviceUrl: "https://router.project-osrm.org/route/v1",
+          profile: profile
+        }),
+        lineOptions: { styles: [{ color: 'red', weight: 4 }] },
+        show: false
+      }).addTo(map);
+    }
+
+    // کلیک روی نقشه
+    map.on("click", function(e) {
+      if (!startMarker) {
+        startMarker = L.marker(e.latlng).addTo(map).bindPopup("نقطه شروع").openPopup();
+      } else if (!endMarker) {
+        endMarker = L.marker(e.latlng).addTo(map).bindPopup("نقطه مقصد").openPopup();
+        createRoute(document.getElementById("profile").value);
+      } else {
+        map.removeLayer(startMarker);
+        map.removeLayer(endMarker);
+        if (control) map.removeControl(control);
+        startMarker = null;
+        endMarker = null;
+      }
+    });
+
+    // وقتی نوع مسیر تغییر کنه، دوباره محاسبه بشه
+    document.getElementById("profile").addEventListener("change", function() {
+      if (startMarker && endMarker) {
+        createRoute(this.value);
+      }
+    });
+  </script>
+</body>
+</html>
